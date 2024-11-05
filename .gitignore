@@ -7,3 +7,4 @@ a.txt
 *.dSYM
 out/
 .idea
+**dist
