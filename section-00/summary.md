@@ -17,6 +17,7 @@ int main(int argc, char** argv) {
 ## 求圆的面积
 * `#define` 定义一个常量
 * `scanf` 获取键盘输入
+
 ```c
 #include <stdio.h>
 
@@ -33,6 +34,34 @@ int main(int argc, char** argv) {
 }
 ```
 代码[calculate_area.c](calculate_area.c)
+
+## 函数调用
+* 定义函数 `int add(int, int);`
+* 函数实现
+* 函数调用
+
+```c
+#include<stdio.h>
+
+int add(int, int);
+
+int main(int argc, char** argv) {
+    printf("step 1: Enter first number \n");
+    int a, b;
+    scanf("%d", &a);
+    printf("step 2: Enter second number \n");
+    scanf("%d", &b);
+    const int sum = add(a, b);
+    printf("%d + %d = %d \n", a, b, sum);
+
+    return 0;
+}
+
+int add(int a, int b) {
+    return a + b;
+}
+```
+代码[add_func.c](add_func.c)
 
 ## 编译
 ```shell
