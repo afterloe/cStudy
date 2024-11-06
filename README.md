@@ -10,3 +10,6 @@ C/CPP 练习与复习
 * [section-01](section-01/summary.md)
     * 数组
     * [多文件编译](section-01/gcc_usage1.md)
+    * 多维数组的初始化
+* [section-02](section-02/summary.md)
+    * 指针
