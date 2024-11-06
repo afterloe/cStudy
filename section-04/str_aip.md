@@ -55,3 +55,9 @@ int sprintf(char* buf, const char* formar, opt...);
 使用参考[case_1](case_1.c).strFormat    
 
 左侧补充0 ‘%02d’ 左对齐，长度为2,不够的补0
+
+### 格式化提取
+* scanf 终端输入提取
+* sscanf 字符串数组提取
+* fscanf 文件提取
+使用参考[case_1](case_1.c).strScanf

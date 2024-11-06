@@ -30,9 +30,20 @@ void strFormat()
     printf("buf = %s \n", buf);
 }
 
+void strScanf() 
+{
+    char buf[] = "2024年11月06日";
+    int year, mon, day;
+    sscanf(buf, "%d年%02d月%02d日", &year, &mon, &day);
+    printf("year = %d \n", year);
+    printf("mon = %d \n", mon);
+    printf("day = %d \n", day);
+}
+
 int main(int argc, char **argv)
 {
     strtokTest();
     strFormat();
+    strScanf();
     return 0;
 }
