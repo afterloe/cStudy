@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 void printArr(int* ptr, int size) {
     for (int i = 0; i < size; i++) {
@@ -14,6 +15,7 @@ int main(int argc, char** argv) {
     int size;
     scanf("%d", &size);
     int* ptr = (int*)malloc(size * sizeof(int));
+    memset(ptr, 0, sizeof(int));
     if (ptr == NULL) {
         perror("mallac failed");
     }
