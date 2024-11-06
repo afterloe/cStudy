@@ -57,7 +57,25 @@ int sprintf(char* buf, const char* formar, opt...);
 左侧补充0 ‘%02d’ 左对齐，长度为2,不够的补0
 
 ### 格式化提取
-* scanf 终端输入提取
-* sscanf 字符串数组提取
+* scanf(char* dst) 终端输入提取
+* sscanf(const char* src, const char* fmt, opt...) 字符串数组提取
 * fscanf 文件提取
 使用参考[case_1](case_1.c).strScanf
+
+```
+sscanf("1234 5678","1234 %d",&data1);//5678
+sscanf("1234 5678","%*d %d",&data1);//5678
+sscanf("1234 5678","%*s %d",&data1);//5678
+```
+> sscanf的高级用法1：使用%*s %*d 跳过提取的内容（不要提取的内容）
+
+```
+sscanf("12abc5678","%*5s%d", &data1);//5678
+sscanf("12345678","%*2s%2d%*2d%s", &data2, buf);//data2=34 buf="78";
+```
+> sscanf的高级用法2：使用%[n]s %[n]d 提取指定宽度n的字符串或数据
+
+```
+sscanf("xxxx", "reg", buf);
+```
+> %[a-z] 提取a-z的字符串 %[aBc] 提取 a B c %[^abc] 只要不是a b c任何一个 都要, 正则表达式？
