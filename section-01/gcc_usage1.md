@@ -1,7 +1,8 @@
 gcc使用指南1
 ===
 
-多文件怎么编译
+多文件怎么手动gcc编译
+
 ### 编译过程
 ```shell
 gcc -o dist/a -I . func.c func_main.c
