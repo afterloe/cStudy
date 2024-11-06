@@ -19,6 +19,8 @@ C/CPP 练习与复习
 * [section-03](section-03/summary.md)
     * 动态内存的申请和释放
     * 数组类型的动态内存管理
+* [section-04](section-04/summary.md)
+    * [字符串API](section-04/str_aip.md)
 
 ## 环境准备
 ### 基础内容
