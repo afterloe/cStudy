@@ -16,3 +16,12 @@
 ## 示例
 
 ### 函数指针 作为函数的形参
+```c
+int sub(int, int);
+int add(int, int);
+
+int calc(int a, int b, int (*func)(int, int)) {
+    return func(a, b);
+}
+```
+在调用的时候`calc(10, 20, add)`即可。
