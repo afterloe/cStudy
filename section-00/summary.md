@@ -1,7 +1,24 @@
 section-1
 ===
+## 知识点
+### 数据类型
+char、short、int、long、float、double    
+int 1 = 0000 0001
 
-## hello iot
+### signed和unsigned
+signed少一位，最高位为1表示复数，0表示正数
+
+### register关键字
+register 表示将 变量放入寄存器中，可实现高速读取，缺点就是不能对其进行取地址的操作
+
+### typedef关键字
+typeof关键字可以为已有的类型取个别名，例如`typedef int INT32;`，在使用的时候就是`INT32 a = 3;`
+
+### 进制的问题
+只是展示形式不同， %d 十进制； %#o 八进制； %#x 十六进制
+
+## 练习
+### hello iot
 使用标准库 - std, 实现输出内容。
 
 ```c
@@ -14,7 +31,7 @@ int main(int argc, char** argv) {
 ```
 代码[hello.c](hello.c)
 
-## 求圆的面积
+### 求圆的面积
 * `#define` 定义一个常量
 * `scanf` 获取键盘输入
 
@@ -63,7 +80,7 @@ int add(int a, int b) {
 ```
 代码[add_func.c](add_func.c)
 
-## 编译
+### 编译
 ```shell
 rm -rf dist
 mkdir dist
