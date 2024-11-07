@@ -25,4 +25,5 @@ typedef struct stu {
 
 } STU;
 ```
-可参考代码[case_1.c](case_1.c).staticLinkedArr()
+可参考代码[case_1.c](case_1.c).staticLinkedArr()   
+动态链表代码参考[case_2.c](case_2.c)

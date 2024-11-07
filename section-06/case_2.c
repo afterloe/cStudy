@@ -62,19 +62,40 @@ void release(Array *foreach)
         == NULL;
 }
 
-Array *insert(Array *foreach, const Array data)
-{
-    Array *next = malloc(sizeof(Array));
+// 使用头插入
+// Array *insert(Array *foreach, const Array data)
+// {
+//     Array *next = malloc(sizeof(Array));
+//     *next = data;
+//     next->next = NULL;
+
+//     if (NULL != foreach)
+//     {
+//         next->next = foreach;
+//     }
+
+//     foreach
+//         = next;
+// }
+
+/*尾插入*/
+Array *insert(Array* foreach, const Array data) {
+    Array *next = calloc(1, sizeof(Array));
     *next = data;
     next->next = NULL;
 
-    if (NULL != foreach)
-    {
-        next->next = foreach;
+    if (NULL == foreach) {
+        foreach = next;
+        return foreach;
     }
 
-    foreach
-        = next;
+    Array* head = foreach;
+    while(head->next != NULL) {
+        head = head->next;
+    }
+    head->next = next;
+    foreach = head;
+    return head;
 }
 
 void printArr(Array *foreach)
