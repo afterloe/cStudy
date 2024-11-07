@@ -25,6 +25,9 @@ C/CPP 练习与复习
 * [section-05](section-05/summary.md)
     * 结构体
     * [排序](section-05/case_2.c)
+    * 枚举
+* [section-06](section-06/summary.md)
+    * 链表
 
 ## 环境准备
 ### 基础内容
