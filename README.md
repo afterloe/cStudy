@@ -22,6 +22,8 @@ C/CPP 练习与复习
 * [section-04](section-04/summary.md)
     * [字符串API, 字符串提取、格式化输出、切割、查找、比较、复制、长度计算等](section-04/str_aip.md)
     * [字符串格式化API](section-04/str_atoi_api.md)
+* [section-05](section-05/summary.md)
+    * 结构体
 
 ## 环境准备
 ### 基础内容
