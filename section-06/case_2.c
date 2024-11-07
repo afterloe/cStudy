@@ -62,7 +62,7 @@ void release(Array *foreach)
         == NULL;
 }
 
-// 使用头插入
+/* 头插入 */
 // Array *insert(Array *foreach, const Array data)
 // {
 //     Array *next = malloc(sizeof(Array));
@@ -98,7 +98,7 @@ void release(Array *foreach)
 //     return foreach;
 // }
 
-/* 有序插入 */
+/* 中间插入 */
 Array *insert(Array *foreach, const Array data)
 {
     Array *node = calloc(1, sizeof(Array));
@@ -112,27 +112,34 @@ Array *insert(Array *foreach, const Array data)
         return foreach;
     }
 
-    Array *pb = foreach, *pf = foreach;
-    while (pb->next != NULL && pb->data < node->data)
+    Array *iterator = foreach, *find = foreach;
+    while (iterator != NULL && iterator->data < node->data)
     {
-        pf = pb;
-        pb = pb->next;
+        find = iterator;
+        iterator = iterator->next;
     }
-    if (pb->data >= node->data)
+    if (find->data >= node->data)
     {
-        if (pb == foreach)
+        // 找到的节点的数据 比 输入的数据大
+        // 执行尾插入
+        if (find == foreach)
         {
+            // 找到的节点就是头节点
             node->next = foreach;
             foreach
                 = node;
-        } else {
-            pf->next = node;
-            node->next = pb;
+        }
+        else
+        {
+            find->next = node;
+            node->next = iterator;
         }
     }
     else
     {
-        pb->next = node;
+        // 执行尾插入
+        node->next = find->next;
+        find->next = node;
     }
 
     return foreach;
