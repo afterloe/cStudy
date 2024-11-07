@@ -31,6 +31,8 @@ C/CPP 练习与复习
     * [动态链表的插入、删除和查询](section-06/case_2.c)
     * 链表的反转
     * [选择排序](section-06/case_3.c)
+* [section-07](section-07/summary.md)
+    * 文件操作
 
 ## 环境准备
 ### 基础内容
