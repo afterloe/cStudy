@@ -23,7 +23,7 @@ C/CPP 练习与复习
     * [字符串API, 字符串提取、格式化输出、切割、查找、比较、复制、长度计算等](section-04/str_aip.md)
     * [字符串格式化API](section-04/str_atoi_api.md)
 * [section-05](section-05/summary.md)
-    * 结构体
+    * 结构体及深拷贝和浅拷贝
     * [冒泡排序](section-05/case_2.c)
     * 枚举
 * [section-06](section-06/summary.md)
