@@ -121,7 +121,7 @@ Array *insert(Array *foreach, const Array data)
     if (find->data >= node->data)
     {
         // 找到的节点的数据 比 输入的数据大
-        // 执行尾插入
+        // 执行头插入
         if (find == foreach)
         {
             // 找到的节点就是头节点
@@ -131,6 +131,7 @@ Array *insert(Array *foreach, const Array data)
         }
         else
         {
+            // 头插入
             find->next = node;
             node->next = iterator;
         }
