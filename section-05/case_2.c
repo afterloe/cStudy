@@ -7,9 +7,11 @@ void printArr(int *, int);
 void sortAsc(int *, int);
 void sortDesc(int *, int);
 
-void doArr(int *p, int size, void (*handle)(int *, int))
+typedef void (*FUN_P)(int*, int);
+
+void doArr(int *p, int size, FUN_P fun)
 {
-    handle(p, size);
+    fun(p, size);
 }
 
 int main(int argc, char **argv)

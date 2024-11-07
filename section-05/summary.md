@@ -29,3 +29,11 @@ struct {
 * 指定字段`lucy.num = 100; strcpy(lucy.name, "xxx");`
 * 内存拷贝`memcpy(&lucy, *bob, sizeof(struct stu));`
 > 在内存操作前记得使用`memset`进行清0操作。
+
+### 结构体指针
+* 取地址即可
+* 申请空间用`calloc`
+
+### 枚举
+enum xxx {v1, v2, v3 = 100, v4}; // v1 = 0, v2 = 1, v3 = 100, v4 101;
+> 枚举从0开始，当指定值后，后续未说明则在之前的值上进行+1操作。
