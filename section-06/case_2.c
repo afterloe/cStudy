@@ -24,7 +24,7 @@ int main(int argc, char **argv)
     while (1)
     {
         char cmd[5] = "";
-        printf("intpu your cmd \n");
+        printf("intpu your cmd: ");
         scanf("%s", cmd);
         if (strcmp(cmd, "e") == 0)
         {
@@ -76,26 +76,66 @@ void release(Array *foreach)
 
 //     foreach
 //         = next;
+//     return foreach;
 // }
 
 /*尾插入*/
-Array *insert(Array* foreach, const Array data) {
-    Array *next = calloc(1, sizeof(Array));
-    *next = data;
-    next->next = NULL;
+// Array* insert(Array* foreach, const Array data) {
+//     Array *next = calloc(1, sizeof(Array));
+//     *next = data;
+//     next->next = NULL;
 
-    if (NULL == foreach) {
-        foreach = next;
+//     if (NULL == foreach) {
+//         foreach = next;
+//         return foreach;
+//     }
+
+//     Array* head = foreach;
+//     while(head->next != NULL) {
+//         head = head->next;
+//     }
+//     head->next = next;
+//     return foreach;
+// }
+
+/* 有序插入 */
+Array *insert(Array *foreach, const Array data)
+{
+    Array *node = calloc(1, sizeof(Array));
+    *node = data;
+    node->next = NULL;
+
+    if (foreach == NULL)
+    {
+        foreach
+            = node;
         return foreach;
     }
 
-    Array* head = foreach;
-    while(head->next != NULL) {
-        head = head->next;
+    Array *pb = foreach, *pf = foreach;
+    while (pb->next != NULL && pb->data < node->data)
+    {
+        pf = pb;
+        pb = pb->next;
     }
-    head->next = next;
-    foreach = head;
-    return head;
+    if (pb->data >= node->data)
+    {
+        if (pb == foreach)
+        {
+            node->next = foreach;
+            foreach
+                = node;
+        } else {
+            pf->next = node;
+            node->next = pb;
+        }
+    }
+    else
+    {
+        pb->next = node;
+    }
+
+    return foreach;
 }
 
 void printArr(Array *foreach)
