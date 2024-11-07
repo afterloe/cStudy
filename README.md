@@ -28,6 +28,7 @@ C/CPP 练习与复习
     * 枚举
 * [section-06](section-06/summary.md)
     * 链表
+    * [动态链表的插入、删除和查询](section-06/case_2.c)
 
 ## 环境准备
 ### 基础内容

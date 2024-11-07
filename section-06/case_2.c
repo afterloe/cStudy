@@ -15,6 +15,7 @@ typedef struct arr
 extern Array *insert(Array *, const Array);
 extern void release(Array *);
 extern void printArr(Array *);
+extern Array *query(Array *, const int);
 
 #endif
 
@@ -42,6 +43,22 @@ int main(int argc, char **argv)
         else if (strcmp(cmd, "p") == 0)
         {
             printArr(arr);
+        }
+        else if (strcmp(cmd, "q") == 0)
+        {
+            printf("you want to find num: ");
+            int num;
+            scanf("%d", &num);
+            Array *find = query(arr, num);
+            if (NULL == find)
+            {
+                printf("can't find %d in Array \n", num);
+            }
+            else
+            {
+
+                printf("find %d - %p \n", find->data, find->next);
+            }
         }
         else
         {
@@ -161,4 +178,18 @@ void printArr(Array *foreach)
             = foreach->next;
     }
     printf("\n");
+}
+
+Array *query(Array *foreach, const int val)
+{
+    if (NULL == foreach)
+    {
+        return NULL;
+    }
+
+    Array* head = foreach, node;
+    while(head != NULL && head->data != val) {
+        head = head->next;
+    }
+    return head;
 }

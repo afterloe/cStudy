@@ -26,4 +26,4 @@ typedef struct stu {
 } STU;
 ```
 可参考代码[case_1.c](case_1.c).staticLinkedArr()   
-动态链表代码参考[case_2.c](case_2.c)
+动态链表代码参考[case_2.c](case_2.c), 演示动态链表的三种插入方式 头插入、尾插入及中间插入。
