@@ -2,18 +2,23 @@
 #include <stdio.h>
 #include <string.h>
 
-int *initArr(int);
-void printArr(int *, int);
-void sortAsc(int *, int);
-void sortDesc(int *, int);
-
+#ifndef __CASE_2__
+#define __CASE_2__
+extern int *initArr(int);
+extern void printArr(int *, int);
+extern void sortAsc(int *, int);
+extern void sortDesc(int *, int);
 typedef void (*FUN_P)(int*, int);
+#endif
 
 void doArr(int *p, int size, FUN_P fun)
 {
     fun(p, size);
 }
-
+/*
+    通过对待排序序列从前向后（从下标较小的元素开始）,依次对相邻两个元素的值进行两两比较，
+    若发现逆序则交换，使值较大的元素逐渐从前移向后部，就如果水底下的气泡一样逐渐向上冒。
+*/
 int main(int argc, char **argv)
 {
     int size;
