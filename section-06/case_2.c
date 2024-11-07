@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 
+// 防止文件重复包含
+#ifndef __ARRAY__
+#define __ARRAY__
 typedef struct arr
 {
     int data;
@@ -9,9 +12,11 @@ typedef struct arr
     struct arr *next;
 } Array;
 
-Array *insert(Array *, const Array);
-void release(Array *);
-void printArr(Array *);
+extern Array *insert(Array *, const Array);
+extern void release(Array *);
+extern void printArr(Array *);
+
+#endif
 
 int main(int argc, char **argv)
 {
@@ -20,7 +25,7 @@ int main(int argc, char **argv)
     {
         char cmd[5] = "";
         printf("intpu your cmd \n");
-        scanf("%s", &cmd);
+        scanf("%s", cmd);
         if (strcmp(cmd, "e") == 0)
         {
             printf("bye! \n");
