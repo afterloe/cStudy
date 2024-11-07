@@ -24,6 +24,7 @@ C/CPP 练习与复习
     * [字符串格式化API](section-04/str_atoi_api.md)
 * [section-05](section-05/summary.md)
     * 结构体
+    * [排序](section-05/case_2.c)
 
 ## 环境准备
 ### 基础内容
