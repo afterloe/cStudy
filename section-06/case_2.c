@@ -17,7 +17,7 @@ extern Array *release(Array *);
 extern void printArr(Array *);
 extern Array *query(Array *, const int);
 extern Array *delete(Array *, const int);
-
+extern Array *reverse(Array *);
 #endif
 
 int main(int argc, char **argv)
@@ -68,6 +68,11 @@ int main(int argc, char **argv)
             scanf("%d", &num);
             arr = delete (arr, num);
             printf("remove %d success! \n", num);
+        }
+        else if (strcmp(cmd, "r") == 0) 
+        {
+            arr = reverse(arr);
+            printf("reverse success! \n");
         }
         else
         {
@@ -245,6 +250,26 @@ Array *delete(Array *foreach, const int val)
         // 中间节点 或 尾节点
         previous->next = iterator->next;
         free(iterator);
+    }
+    return foreach;
+}
+
+Array *reverse(Array *foreach) {
+    if (NULL == foreach) {
+        return foreach;
+    }
+
+    Array *current, *previous;
+    current = foreach->next;
+    // 反转头节点 -> 传入的头节点成为最后一个节点，那么他没有Next节点，设置为NULL
+    foreach->next = NULL;
+    while(current != NULL) {
+        // 如果当前节点不为空，则进入反转逻辑
+        previous = current->next; // 上一个节点等于 当前节点的 下一个节点
+        current->next = foreach; // 当前节点的下一个节点 等于传入的节点
+
+        foreach = current; // 再将传入的节点指向当前的节点
+        current = previous; // 再将当前的节点指向上一个节点
     }
     return foreach;
 }
