@@ -13,9 +13,10 @@ typedef struct arr
 } Array;
 
 extern Array *insert(Array *, const Array);
-extern void release(Array *);
+extern Array *release(Array *);
 extern void printArr(Array *);
 extern Array *query(Array *, const int);
+extern Array *delete(Array *, const int);
 
 #endif
 
@@ -30,7 +31,7 @@ int main(int argc, char **argv)
         if (strcmp(cmd, "e") == 0)
         {
             printf("bye! \n");
-            release(arr);
+            arr = release(arr);
             break;
         }
         else if (strcmp(cmd, "i") == 0)
@@ -60,6 +61,14 @@ int main(int argc, char **argv)
                 printf("find %d - %p \n", find->data, find->next);
             }
         }
+        else if (strcmp(cmd, "d") == 0)
+        {
+            printf("you want to del num: ");
+            int num;
+            scanf("%d", &num);
+            arr = delete (arr, num);
+            printf("remove %d success! \n", num);
+        }
         else
         {
             printf("unknow cmd, supper e -> exit; i -> insert; p -> printf \n");
@@ -68,15 +77,25 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void release(Array *foreach)
+Array *release(Array *foreach)
 {
     if (NULL == foreach)
     {
-        return;
+        return foreach;
     }
-    free(foreach);
+
+    Array *iterator = foreach;
+    while (iterator != NULL)
+    {
+        foreach
+            = iterator->next;
+        free(iterator);
+        iterator = foreach;
+    }
+
     foreach
         == NULL;
+    return foreach;
 }
 
 /* 头插入 */
@@ -187,9 +206,45 @@ Array *query(Array *foreach, const int val)
         return NULL;
     }
 
-    Array* head = foreach, node;
-    while(head != NULL && head->data != val) {
-        head = head->next;
+    Array *iterator = foreach;
+    while (iterator != NULL && iterator->data != val)
+    {
+        iterator = iterator->next;
     }
-    return head;
+    return iterator;
+}
+
+Array *delete(Array *foreach, const int val)
+{
+    if (NULL == foreach)
+    {
+        return foreach;
+    }
+
+    Array *iterator = foreach, *previous = foreach;
+    while (iterator != NULL && iterator->data != val)
+    {
+        previous = iterator;
+        iterator = iterator->next;
+    }
+
+    if (NULL == iterator)
+    {
+        return foreach;
+    }
+
+    // 如果是头节点
+    if (iterator == foreach)
+    {
+        foreach
+            = previous->next;
+        free(iterator);
+    }
+    else
+    {
+        // 中间节点 或 尾节点
+        previous->next = iterator->next;
+        free(iterator);
+    }
+    return foreach;
 }
