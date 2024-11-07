@@ -12,3 +12,4 @@
 
 #### kernel
 `int open(const char* filePath, const char* type)`
+代码示例[kernel_case_1.c](kernel_case_1.c)
