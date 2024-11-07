@@ -68,6 +68,9 @@ void sortAsc(int *p, int size)
     }
 }
 
+/**
+ * 不使用 第三个数 实现交换
+ */
 void sortDesc(int *p, int size)
 {
     for (int i = 0; i < size - 1; i++)
@@ -76,7 +79,7 @@ void sortDesc(int *p, int size)
         {
             if (*(p + j) < *(p + j + 1))
             {
-                *(p + j + 1) = *(p + j) + *(p + j + 1);
+                *(p + j + 1) += *(p + j);
                 *(p + j) = *(p + j + 1) - *(p + j);
                 *(p + j + 1) = *(p + j + 1) - *(p + j);
             }
