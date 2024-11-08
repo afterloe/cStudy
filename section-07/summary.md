@@ -16,6 +16,14 @@
 `int open(const char* filePath, const char* type)`
 代码示例[kernel_case_1.c](kernel_case_1.c)
 
+#### 读取乱码的问题
+同一个文件写入然后又读取会出现读取乱码的问题，原因在于文件写完后需要关闭文件，然后重新打开文件，让文件流指针 重新指向开始位置。若不想进行此次操作可以使用复位文件流指针函数`rewind(*FILE)`来进行。
+```c
+fp = fopen();
+fwrite(content, sizeof(content), 2, fp);
+rewind(fp); // 复位文件流
+fread(content, sizeof(content), 2, fp);
+```    
 
 ### 写文件 fputc、fputs
 `fputs(const char*, const FILE*)` 或 `fputc(const char, const FILE*)`  , FILE*可以使用stdio、stdout等。在kernel中，可以使用STDOUT_FILENO 进行。    
@@ -25,6 +33,8 @@
 
 > demo1: [cp文件](case_3.c)
 
+### 文件格式化读写 fprintf, fscanf
+同sscanf和printf的参数。
 
 ### 文件的块读写 fread、fwrite
 
