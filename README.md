@@ -17,7 +17,7 @@ C/CPP 练习与复习
     * 指针与万能指针void*
     * 指针读取数组
     * 使用指针函数修改他范围外的值
-    * 函数指针的动态调用
+    * 函数指针的动态调用，回调函数
 * [section-03](section-03/summary.md)
     * 动态内存的申请和释放
     * 数组类型的动态内存管理
@@ -37,8 +37,10 @@ C/CPP 练习与复习
 * [section-07](section-07/summary.md)
     * 文件读写操作, 文件指针的移动
     * 文件状态、文件重命名及文件删除
+* [section-08](section-08/summary.md)
+    * 数据结构
 * 备忘录
-    * [GCC的使用](other/gcc_usage.md)
+    * [GCC的使用以及库的创建和使用](other/gcc_usage.md)
     * [libevent 网络工具库](other/libevent_usage.md)
     * [socket模拟工具、内存泄漏检测工具](other/tools.md)
 
