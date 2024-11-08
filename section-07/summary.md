@@ -13,6 +13,10 @@ stat(char *filepaht, p);
 ```
 代码示例[文件状态](case_7.c)
 
+### 文件重命名 rename
+
+### 文件删除 remove
+
 ### 打开文件并读取 fopen、fclose、fgetc、fgets
 `fgetc(int, FILE*)` int 为一个char， 当char不等于EOF，即-1表示任能继续读取。   
 `fgets(char*, n, fp)`  n 为char[]的大小。

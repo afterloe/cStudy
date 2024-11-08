@@ -7,6 +7,8 @@ C/CPP 练习与复习
 * [section-00](section-00/summary.md)
     * hello c
     * 键盘输入获取
+    * 位操作 - 不借助第三数值实现两个数交换
+    * [生成随机数](section-00/case_1.c)
 * [section-01](section-01/summary.md)
     * 数组
     * [多文件编译](section-01/gcc_usage1.md)
@@ -35,6 +37,7 @@ C/CPP 练习与复习
     * 文件读写操作, 文件指针的移动
     * 文件状态、文件重命名及文件删除
     * [练习： 随机试卷， 作试卷](section-07/practice-1/summary.md)
+    * [练习： 命令行翻译软件](section-07/practicee-2/summary.md)
 * 备忘录
     * [GCC的使用](other/gcc_usage.md)
     * [libevent 网络工具库](other/libevent_usage.md)

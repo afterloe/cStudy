@@ -17,6 +17,35 @@ typeof关键字可以为已有的类型取个别名，例如`typedef int INT32;`
 ### 进制的问题
 只是展示形式不同， %d 十进制； %#o 八进制； %#x 十六进制
 
+### 随机数 srand、rand
+随机数需要引入`stdlib.h`， 在使用`rand`前需要重置随机种子`srand(unsigned int __seed)`;   
+
+```c
+#include <stdlib.h>
+#include <time.h>
+
+int main() {
+    srand(time(NULL));
+    int num = rand();
+}
+```
+> 参考代码[case_1.c](case_1.c)
+
+随机数的范围很大，如果想限制范围可以使用取余数的方式`rand() % max + 1` 即可。
+
+### 位操作
+| 符号 | 描述 | 运算规则 
+| ---- | --- | ------- 
+| &	| 与 |	两个位都为1时，结果才为1
+| \| |	或 |	两个位都为0时，结果才为0
+| ^	 | 异或 |	两个位相同为0，相异为1
+| ~	 | 取反 |	0变1，1变0
+| << |	左移 |	各二进位全部左移若干位，高位丢弃，低位补0
+| >> |	右移 |	各二进位全部右移若干位，高位补0或符号位补齐
+
+不使用第三个数实现两个数交换
+> 参考代码[case_1.c](case_1.c)
+
 ## 练习
 ### hello iot
 使用标准库 - std, 实现输出内容。
@@ -53,7 +82,7 @@ int main(int argc, char** argv) {
 代码[calculate_area.c](calculate_area.c)
 
 ## 函数调用
-* 定义函数 `int add(int, int);`
+* 定义函数 `extern int add(int, int);`
 * 函数实现
 * 函数调用
 
