@@ -3,6 +3,28 @@ gcc使用指南1
 
 多文件怎么手动gcc编译
 
+### 多文件（分文件）编程 规范
+* 把函数声明、宏放在头文件`xxx.h`中，并在主函数中包含相应头文件；
+* 在头文件对应的`xxx.c`中实现`xxx.h`声明的函数。
+
+### 防止头文件重复包含
+#### 方法1： #pragma once
+```c
+#pragma once
+```
+编译器上统一设置
+
+#### 方法2：#define
+```c
+#ifndef __SOMEFILE_H__
+#define __SOMEFILE_H__
+
+extern void* func(int, int);
+
+#endif
+```
+使用代码进行
+
 ### 编译过程
 ```shell
 gcc -o dist/a -I . func.c func_main.c
