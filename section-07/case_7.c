@@ -2,12 +2,12 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
-int main(int argc, char ** argv) {
+int main(int argc, char** argv) {
     if (argc < 2) {
         printf("less one arg \n");
         return EXIT_FAILURE;
     }
-    struct stat *s = calloc(1, sizeof(struct stat));
+    struct stat* s = calloc(1, sizeof(struct stat));
     argv++;
     if (-1 == stat(*argv, s)) {
         perror("file stat :");
