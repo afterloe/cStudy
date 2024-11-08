@@ -7,12 +7,14 @@
 
 #define QUEST_LEN 15
 #define MAX_NUM   100
+#define QUEST_FORMAT "%d\t%c\t%d\t=\t"
+#define ANSWER_FORMAT "%d\t%c\t%d\t=\t%2g\n"
 
 extern int getNum();
-extern char* getSymbol();
+extern char getSymbol();
+extern float work(int, int, char);
 
-const char symbol[4][4] = {"+", "-", "*", "/"};
-#define QUEST_FORMAT "%d\t%s\t%d\t=\t"
+static const char symbol[4] = {'+', '-', '*', '/'};
 
 char* getQuestions() {
 	char* q = calloc(QUEST_LEN, sizeof(char));
@@ -55,10 +57,57 @@ void printTestPaper(const char** questions, const int num, const char *filepath)
 	fp = NULL;
 }
 
+char** doQuestions(const char* filepath, const char* destPath) {
+	FILE* fp = fopen(filepath, "r");
+	if (NULL == fp)
+	{
+		perror("open file :");
+		return 0;
+	}
+	FILE* answers = fopen(destPath, "w+");
+	if (NULL == answers) {
+		perror("open dest file :");
+		return 0;
+	}
+	int a, b, num = 0;
+	char s;
+	while (!feof(fp))
+	{
+		fscanf(fp, QUEST_FORMAT, &a, &s, &b);
+		float r = work(a, b, s);
+		fprintf(answers, ANSWER_FORMAT, a, s, b, r);
+		num++;
+	}
+	printf("write %d question to %s \n", num, destPath);
+	fclose(fp);
+	fclose(answers);
+	return NULL;
+}
+
+int getQuestionsNum(const char* filepath) {
+	return 0;
+
+}
+
 int getNum() {
 	return rand() % MAX_NUM + 1;
 }
 
-char* getSymbol() {
+char getSymbol() {
 	return symbol[rand() % 4];
+}
+
+float work(int a, int b, char s) {
+	switch (s) {
+	case '+':
+		return a + b;
+	case '-':
+		return a - b;
+	case '*':
+		return a * b;
+	case '/':
+		return (float)a / b;
+	default:
+		return 0;
+	}
 }
