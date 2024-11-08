@@ -36,6 +36,8 @@ C/CPP 练习与复习
     * 文件指针的移动
 * 备忘录
     * [GCC的使用](other/gcc_usage.md)
+    * [libevent 网络工具库](other/libevent_usage.md)
+    * [socket模拟工具、内存泄漏检测工具](other/tools.md)
 
 ## 环境准备
 ### 基础内容
