@@ -21,11 +21,11 @@ char* strncat(char *dest, const char* src, const int num);
 
 ### 字符串比较
 int strcmp(const char* s1, const char* s2);
-> '> 0' 表示s1 > s2  '=0' 表示相同
+> 比较字符的ASCII码大小，'> 0' 表示s1 > s2  '=0' 表示相同
 
 ### 字符串局部比较
 int strncmp(const char* s1, const char* s2, const num);
-> 比较前num个字符， '=0' 表示相同
+> 比较字符的ASCII码大小，比较前num个字符， '=0' 表示相同
 
 ### 字符查找
 char* *strchr(const char* s, int c);

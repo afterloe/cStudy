@@ -11,6 +11,8 @@ gcc使用指南1
 #### 方法1： #pragma once
 ```c
 #pragma once
+
+extern void* func(int, int);
 ```
 编译器上统一设置
 

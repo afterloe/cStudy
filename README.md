@@ -14,7 +14,7 @@ C/CPP 练习与复习
     * [多文件（分文件）编程](section-01/gcc_usage1.md)
     * 多维数组的初始化
 * [section-02](section-02/summary.md)
-    * 指针
+    * 指针与万能指针void*
     * 指针读取数组
     * 使用指针函数修改他范围外的值
     * 函数指针的动态调用
