@@ -21,6 +21,7 @@ C/CPP 练习与复习
 * [section-03](section-03/summary.md)
     * 动态内存的申请和释放
     * 数组类型的动态内存管理
+    * [内存操作函数](section-03/memory_aip.md)
 * [section-04](section-04/summary.md)
     * [字符串API, 字符串提取、格式化输出、切割、查找、比较、复制、长度计算等](section-04/str_aip.md)
     * [字符串格式化API](section-04/str_atoi_api.md)

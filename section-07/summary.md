@@ -75,6 +75,7 @@ EOF宏只适用于文本文件，`feof(*FILE)`适用于所有文件。
 同sscanf和printf的参数。
 
 ### 文件的块读写 fread、fwrite
+也可以用着一块进行大文件的读写操作，加了buf会比putc和getc快很多
 
 #### fwrite
 ```
@@ -97,3 +98,11 @@ count: 要读写的数据块个数 sizeof(arr) / sizeof(struct)
 fp
 ```
 可以理解为数据反序列化，[代码示例](case_6.c)
+
+### 更新缓冲区 fflush
+```
+stdio.h
+
+int fflush(FILE*);
+```
+更新缓冲区，让缓冲区的数据立马写到文件中。
