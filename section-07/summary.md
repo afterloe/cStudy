@@ -25,6 +25,27 @@ rewind(fp); // 复位文件流
 fread(content, sizeof(content), 2, fp);
 ```    
 
+### 获取文件流指针所在的位置 ftell
+当前指针到头部的位置使用函数`int ftell(*FILE)`，该函数返回当前位置距离文件起始的字节数。
+> 骚操作， 使用fseek将指针移到文件末尾，在调用ftell，就可以返回该文件的字节大小了。
+
+### 指定读写位置 fseek
+fseek函数一般用于二进制文件
+```
+int fseek(*FILE, n, w);
+
+n: 偏移量, 负数左移，正数右移
+w: 
+   SEEK_SET 0 文件开头
+   SEEK_CUR 1 文件当前位置
+   SEEK_END 2 文件末尾
+
+以w为起点，移动n个单位
+```
+
+### 判断文件是否到达末尾 feof
+EOF宏只适用于文本文件，`feof(*FILE)`适用于所有文件。
+
 ### 写文件 fputc、fputs
 `fputs(const char*, const FILE*)` 或 `fputc(const char, const FILE*)`  , FILE*可以使用stdio、stdout等。在kernel中，可以使用STDOUT_FILENO 进行。    
 代码示例[case_2.c](case_2.c) 或 [kernel_case_2.c](kernel_case_2.c)

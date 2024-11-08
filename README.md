@@ -4,7 +4,7 @@ C/CPP 练习与复习
 
 **目录**
 
-* [section-02](section-00/summary.md)
+* [section-00](section-00/summary.md)
     * hello c
     * 键盘输入获取
 * [section-01](section-01/summary.md)
@@ -32,7 +32,10 @@ C/CPP 练习与复习
     * 链表的反转
     * [选择排序](section-06/case_3.c)
 * [section-07](section-07/summary.md)
-    * 文件操作
+    * 文件读写操作
+    * 文件指针的移动
+* 备忘录
+    * [GCC的使用](other/gcc_usage.md)
 
 ## 环境准备
 ### 基础内容
