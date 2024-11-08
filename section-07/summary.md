@@ -2,6 +2,17 @@
 ===
 
 ## 重点
+
+### 文件状态 status
+引入`sys/stat.h`，使用内置结构体`struct stat * p`接收。
+```
+struct stat *p;
+stat(char *filepaht, p);
+
+
+```
+代码示例[文件状态](case_7.c)
+
 ### 打开文件并读取 fopen、fclose、fgetc、fgets
 `fgetc(int, FILE*)` int 为一个char， 当char不等于EOF，即-1表示任能继续读取。   
 `fgets(char*, n, fp)`  n 为char[]的大小。
@@ -28,6 +39,8 @@ fread(content, sizeof(content), 2, fp);
 ### 获取文件流指针所在的位置 ftell
 当前指针到头部的位置使用函数`int ftell(*FILE)`，该函数返回当前位置距离文件起始的字节数。
 > 骚操作， 使用fseek将指针移到文件末尾，在调用ftell，就可以返回该文件的字节大小了。
+
+计算文件有多少行`fgetc() == '\n'; line++` 计算 字符有多少个`\n`即可。   
 
 ### 指定读写位置 fseek
 fseek函数一般用于二进制文件

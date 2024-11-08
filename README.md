@@ -32,8 +32,9 @@ C/CPP 练习与复习
     * 链表的反转
     * [选择排序](section-06/case_3.c)
 * [section-07](section-07/summary.md)
-    * 文件读写操作
-    * 文件指针的移动
+    * 文件读写操作, 文件指针的移动
+    * 文件状态、文件重命名及文件删除
+    * [练习： 随机试卷， 作试卷](section-07/practice-1/summary.md)
 * 备忘录
     * [GCC的使用](other/gcc_usage.md)
     * [libevent 网络工具库](other/libevent_usage.md)
