@@ -32,9 +32,20 @@
 ```
 fwrite(buffer, size, count, fp);
 
-buffer: 结构体首地址指针
-size: 接口体的大小
-count: 要读写的数据块个数
+buffer: 结构体首地址指针 arr
+size: 结构体的大小 sizeof(struct)
+count: 要读写的数据块个数 sizeof(arr) / sizeof(struct)
 fp 
 ```
 可以理解为数据序列化， [代码示例](case_5.c)
+
+#### fread
+```
+fread(buffer, size, count, fp);
+
+buffer: 结构体首地址指针 arr
+size: 结构体的大小 sizeof(struct)
+count: 要读写的数据块个数 sizeof(arr) / sizeof(struct)
+fp
+```
+可以理解为数据反序列化，[代码示例](case_6.c)
