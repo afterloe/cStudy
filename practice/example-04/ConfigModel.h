@@ -1,8 +1,12 @@
-﻿// ConfigModel.h: 标准系统包含文件的包含文件
-// 或项目特定的包含文件。
+﻿#ifndef __CONFIG_MODEL__
+#define __CONFIG_MODEL__
 
-#pragma once
+typedef struct c {
+	char* key;
+	char* value;
+} Config;
 
-#include <iostream>
+extern Config* readConfig(const char*);
 
-// TODO: 在此处引用程序需要的其他标头。
+#endif // __CONFIG_MODEL__
+
