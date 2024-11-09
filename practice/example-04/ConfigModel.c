@@ -6,8 +6,8 @@
 
 #define BUF_SIZE 1500
 
-Config* readConfig(const char* filepath) {
-	Config* arr = NULL;
+Config** readConfig(const char* filepath) {
+	Config* head = NULL;
 	FILE* fp = NULL;
 	fp = fopen(filepath, "r");
 	if (NULL == fp)
@@ -16,37 +16,29 @@ Config* readConfig(const char* filepath) {
 		return NULL;
 	}
 
-	int line = 1, idx = 0;
-	while (!feof(fp)) {
-		if (fgetc(fp) == '\n') {
-			line++;
-		}
-	}
-	printf("%d config item \n", line);
-	fseek(fp, 0, SEEK_SET);
-
-	arr = calloc(line, sizeof(Config));
 	char* buf = calloc(BUF_SIZE, sizeof(char));
 	while (!feof(fp))
 	{
 		memset(buf, 0, BUF_SIZE);
 		fgets(buf, BUF_SIZE, fp);
+		int* ret = strchr(buf, '=');
+		if (ret == NULL) {
+			continue;
+		}
+		
 		char* key = strtok(buf, "=");
 		if (NULL == key) {
 			continue;
 		}
-		Config* cfg = malloc(sizeof(Config));
-		memset(cfg, 0, sizeof(Config));
-		cfg->value = calloc(128, sizeof(char*));
-		cfg->key = calloc(128, sizeof(char*));
-
-
-		strcpy(cfg->key, key);
-		key = strtok(NULL, buf);
-		strcpy(cfg->value, key);
-		arr[idx] = *cfg;
-		idx++;
-
+		Config* node = malloc(sizeof(Config));
+		memset(node, 0, sizeof(Config));
+		node->value = calloc(128, sizeof(char*));
+		node->key = calloc(128, sizeof(char*));
+		node->next = NULL;
+		strcpy(node->key, key);
+		key = strtok(NULL, cpy);
+		strcpy(node->value, key);
+		head = add(head, node);
 	}
 
 
@@ -55,5 +47,29 @@ Config* readConfig(const char* filepath) {
 	fclose(fp);
 	fp = NULL;
 
-	return arr;
+	return &head;
+}
+
+Config* add(Config* ptr, Config* node) {
+
+	if (NULL != ptr) {
+		node->next = ptr;
+	}
+	ptr = node;
+	return ptr;
+}
+
+void printCfg( Config* ptr)
+{
+	if (NULL == ptr)
+	{
+		printf("Config is empty; \n");
+			return;
+	}
+	while (ptr != NULL)
+	{
+		printf("%s -> %s \n", ptr->key, ptr->value);
+		ptr = ptr->next;
+	}
+	printf("\n");
 }

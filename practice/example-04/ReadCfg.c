@@ -9,10 +9,7 @@ int main(int argc, char** args) {
 	//	return EXIT_FAILURE;
 	//}
 	//args++;
-	Config* cfg = readConfig("a.cfg");
-	do {
-		printf("%s -> %s \n", cfg->key, cfg->value);
-		cfg++;
-	} while (cfg != NULL);
+	Config** cfg = readConfig("a.cfg");
+	printCfg(*cfg);
 	return EXIT_SUCCESS;
 }
