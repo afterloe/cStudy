@@ -24,3 +24,25 @@
 * sscanf 
 * strchr 判断是否有指定字符
 * strcpy
+
+
+## 编译脚本
+### cmake
+```
+mkdir build
+cd build
+cmake ..
+make
+```
+
+### sh
+```shell
+#!/bin/bash
+
+/usr/bin/c++ -fdiagnostics-color=always \
+-I.\
+`find ./ -maxdepth 1 -name '*.c'` \
+-o dist/a
+
+echo '编译完毕'
+```
