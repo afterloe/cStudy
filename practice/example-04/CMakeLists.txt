@@ -12,7 +12,9 @@ endif()
 include_directories(${NAME} configModel.h)
 
 # 将源代码添加到此项目的可执行文件。
-add_executable (ConfigModel "configModel.c" "readCfg.c")
+add_executable (ConfigModel "configModel.c" "readCfg.c"
+        decode.h
+        decode.c)
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET ${NAME} PROPERTY CXX_STANDARD 20)
