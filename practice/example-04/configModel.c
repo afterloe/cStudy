@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "ConfigModel.h"
+#include "configModel.h"
 
 #define BUF_SIZE 1500
 

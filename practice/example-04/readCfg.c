@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "ConfigModel.h"
+#include "configModel.h"
 
 int main(int argc, char** args) {
 	//if (argc == 1) {
