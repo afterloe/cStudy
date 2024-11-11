@@ -1,15 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "Examination.h"
+#include "examination.h"
 
 extern void getTestPaper();
 extern void doTestPaper(const char*, const char*);
 
 int main(int argc, char** argv) {
 	if (argc == 1) {
-		// ณ๖สิพํ
-		printf("less one args");
 		getTestPaper();
 	}
 	else {
@@ -26,7 +24,7 @@ void getTestPaper() {
 	int ret = scanf("%d", &num);
 	if (-1 == ret)
 	{
-		return EXIT_FAILURE;
+		return;
 	}
 	char** questions = generatorTestPaper(num);
 	printTestPaper(questions, num, "a.txt");
@@ -36,6 +34,5 @@ void getTestPaper() {
 
 void doTestPaper(const char* paperPath, const char* answerPath)
 {
-	char ** answers = doQuestions(paperPath, answerPath);
-
+	doQuestions(paperPath, answerPath);
 }

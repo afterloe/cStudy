@@ -45,7 +45,7 @@ C/CPP 练习与复习
     * [socket模拟工具、内存泄漏检测工具](other/tools.md)
 
 ## C/C++ 小工程/项目
-* [练习：随机试卷，作试卷](practice/example-01/summary.md)
+* [练习：随机试卷，做试卷](practice/example-01/summary.md)
 * [练习：命令行下的翻译软件](practice/example-02/summary.md)
 * [练习：命令行下的贪吃蛇](practice/example-03/summary.md)
 * [练习：读取配置文件，配置文件加解密](practice/example-04/summary.md)

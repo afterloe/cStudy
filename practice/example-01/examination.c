@@ -3,9 +3,8 @@
 #include <string.h>
 #include <time.h>
 
-#include "Examination.h"
+#include "examination.h"
 
-#define QUEST_LEN 15
 #define MAX_NUM   100
 #define QUEST_FORMAT "%d\t%c\t%d\t=\t"
 #define ANSWER_FORMAT "%d\t%c\t%d\t=\t%2g\n"
@@ -17,7 +16,7 @@ extern float work(int, int, char);
 static const char symbol[4] = {'+', '-', '*', '/'};
 
 char* getQuestions() {
-	char* q = calloc(QUEST_LEN, sizeof(char));
+	char* q = calloc(1, sizeof(char));
 	if (NULL == q)
 	{
 		return NULL;
@@ -29,8 +28,11 @@ char* getQuestions() {
 }
 
 char** generatorTestPaper(const int num) {
-	srand(time(NULL));
 	char** testPaper = calloc(num, sizeof(char*));
+	if (NULL == testPaper) {
+		return NULL;
+	}
+	srand(time(NULL));
 	for (int idx = 0; idx < num; idx++) {
 		*(testPaper + idx) = getQuestions();
 	}
@@ -57,31 +59,30 @@ void printTestPaper(const char** questions, const int num, const char *filepath)
 	fp = NULL;
 }
 
-char** doQuestions(const char* filepath, const char* destPath) {
+void doQuestions(const char* filepath, const char* destPath) {
 	FILE* fp = fopen(filepath, "r");
 	if (NULL == fp)
 	{
 		perror("open file :");
-		return 0;
+		return ;
 	}
 	FILE* answers = fopen(destPath, "w+");
 	if (NULL == answers) {
 		perror("open dest file :");
-		return 0;
+		return;
 	}
 	int a, b, num = 0;
 	char s;
 	while (!feof(fp))
 	{
 		fscanf(fp, QUEST_FORMAT, &a, &s, &b);
-		float r = work(a, b, s);
+		const float r = work(a, b, s);
 		fprintf(answers, ANSWER_FORMAT, a, s, b, r);
 		num++;
 	}
 	printf("write %d question to %s \n", num, destPath);
 	fclose(fp);
 	fclose(answers);
-	return NULL;
 }
 
 int getQuestionsNum(const char* filepath) {
