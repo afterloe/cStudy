@@ -1,9 +1,0 @@
-# ninja log v6
-0	20	1731286457728796554	CMakeFiles/Examination.dir/main.c.o	cc086a23ac329dc2
-0	27	1731286479710293806	CMakeFiles/Examination.dir/examination.c.o	57ab398ead3b4a92
-27	39	1731286479736295534	Examination	a16555adb81b6bf
-0	19	1731286868517889506	CMakeFiles/Examination.dir/main.c.o	cc086a23ac329dc2
-0	26	1731286983156892048	CMakeFiles/Examination.dir/examination.c.o	57ab398ead3b4a92
-26	39	1731286983182892920	Examination	a16555adb81b6bf
-1	28	1731287038521717972	CMakeFiles/Examination.dir/examination.c.o	57ab398ead3b4a92
-28	40	1731287038548718849	Examination	a16555adb81b6bf

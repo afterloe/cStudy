@@ -1,3 +1,0 @@
-/home/afterloe/Projects/cStudy/practice/example-01/cmake-build-debug/CMakeFiles/Examination.dir
-/home/afterloe/Projects/cStudy/practice/example-01/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/afterloe/Projects/cStudy/practice/example-01/cmake-build-debug/CMakeFiles/rebuild_cache.dir

@@ -10,3 +10,4 @@ out/
 .idea
 **dist
 a.data
+cmake-build-debug/
