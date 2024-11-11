@@ -4,12 +4,12 @@
 #include "configModel.h"
 
 int main(int argc, char** args) {
-	//if (argc == 1) {
-	//	printf("need config path \n");
-	//	return EXIT_FAILURE;
-	//}
-	//args++;
-	Config** cfg = readConfig("a.cfg");
-	printCfg(*cfg);
+	if (argc == 1) {
+		printf("need config path \n");
+		return EXIT_FAILURE;
+	}
+	args++;
+	const Config* cfg = readConfig(*args);
+	printCfg(cfg);
 	return EXIT_SUCCESS;
 }

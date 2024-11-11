@@ -8,9 +8,9 @@ typedef struct c {
 	struct c *next;
 } Config;
 
-extern Config** readConfig(const char*);
+extern Config* readConfig(const char*);
 extern Config* add(Config*,  Config*);
-extern void printCfg( Config*);
+extern void printCfg(const Config*);
 
 #endif // __CONFIG_MODEL__
 
