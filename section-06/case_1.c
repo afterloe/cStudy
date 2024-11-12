@@ -1,51 +1,30 @@
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <stdio.h>
 
-typedef struct arr
+void testByC(const char *filepath)
 {
-    // 数据域
-    int num;
+    int i = 0;
+    FILE *fp = NULL;
+    fp = fopen(filepath, "r");
+    if (NULL == fp)
+    {
+        perror("fopen filed.");
+    }
+    while (1)
+    {
+        if ( (i = fgetc(fp)) == EOF)
+        {
+            break;
+        }
+        printf("%c", i);
+    }
 
-    // 指针域
-    struct arr *next;
-} Array;
-
-void staticLinkedArr();
-
-int main(int argc, char **args)
-{
-    staticLinkedArr();
-    return 0;
+    fclose(fp);
 }
 
-/**
- * 静态链表
- */
-void staticLinkedArr()
+int main(int argc, char **argv)
 {
-    Array d1 = {1};
-    Array d2 = {11};
-    Array d3 = {111};
-    Array d4 = {10};
-    Array d5 = {101};
-
-    // 组链
-    Array *head = NULL;
-    head = &d1;
-    d1.next = &d2;
-    d2.next = &d3;
-    d3.next = &d4;
-    d4.next = &d5;
-
-    // 遍历
-    Array *foreach = NULL;
-    foreach
-        = head;
-    while (foreach->next != NULL)
-    {
-        printf("value -> %d \n", foreach->num);
-        foreach
-            = foreach->next;
-    }
+    char filepath[128] = "../LICENSE";
+    testByC(filepath);
+    return 0;
 }
