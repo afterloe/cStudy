@@ -6,12 +6,12 @@
 #include "dict.h"
 
 int main(const int argc, const char **argv) {
-    // if (argc != 2) {
-    //     help();
-    //     return EXIT_FAILURE;
-    // }
+    if (argc != 2) {
+        help();
+        return EXIT_FAILURE;
+    }
     Dict *head = NULL;
-    dict_new(&head);
+    dict_new(&head, argv[1]);
     if (head == NULL) {
         printf("init dict failed.");
         return EXIT_FAILURE;
