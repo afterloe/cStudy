@@ -44,13 +44,12 @@ void find(const char *word, Dict *dict) {
     printf("can't find any about '%s' in dict. \n", word);
 }
 
-Dict *load_dict_by_txt(const char *filepath) {
+Dict *load_dict_by_txt(const char *filepath, Dict **head) {
     FILE *fp = fopen(filepath, "r");
     if (fp == NULL) {
         printf("can't open file %s\n", filepath);
         return NULL;
     }
-    Dict *head = NULL;
     char *buf = calloc(BUFF_SIZE, sizeof(char));
     int item = 0;
     while (!feof(fp)) {
@@ -74,13 +73,13 @@ Dict *load_dict_by_txt(const char *filepath) {
             node->val = calloc(len, sizeof(char));
             node->val = strcpy(node->val, buf + 6);
         }
-        head = add_dict(head, node);
+        *head = add_dict(*head, node);
     }
 
     free(fp);
     free(buf);
     printf("load %d item \n", item);
-    return head;
+    return *head;
 }
 
 Dict *add_dict(Dict *ptr, Dict *node) {
@@ -93,14 +92,12 @@ Dict *add_dict(Dict *ptr, Dict *node) {
 
 Dict *dict_new(Dict **head, const char *filepath) {
     printf("loading dict... from %s \n", filepath);
-    Dict *node = NULL;
+
     if (strstr(filepath, ".txt") != NULL) {
         // load txt
-        node = load_dict_by_txt(filepath);
+        *head = load_dict_by_txt(filepath, head);
     } else if (strstr(filepath, ".csv") != NULL) {
         // load csv
     }
-
-    *head = node;
     return *head;
 }
