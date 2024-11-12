@@ -30,10 +30,24 @@
     * 文件状态、文件重命名及文件删除
 * [section-07](section-07/summary.md)
     * 数据结构
-    * [链表](section-07/01_link_list_head.c)/ [动态链表的插入、删除和查询](section-07/case_2.c)/ 链表的反转
+    * [线性表](section-07/linear-list/summary.md)/ [链表的插入、删除和查询](section-07/linear-list/case_2.c)/ 链表的反转
+    * 动态数组
+    * 动态链表
+    * 栈 / 队列
+    * 树 / 二叉树
+    * Map
 * [section-08](section-08/summary.md)
     * [冒泡排序](section-05/case_2.c)
-    * [选择排序](section-07/case_3.c)
+    * [选择排序](section-07/linear-list/case_3.c)
+    * [插入排序](section-08/case_1.c)
+* [section-09 面向接口编程](section-09/summary.md)
+    * 定义函数指针
+    * 定义实现函数指针的函数
+    * 实现函数
+    * 调用
+
+
+
 * 备忘录
     * [GCC的使用以及库的创建和使用](other/gcc_usage.md)
     * [libevent 网络工具库](other/libevent_usage.md)

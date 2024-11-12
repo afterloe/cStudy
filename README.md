@@ -36,11 +36,13 @@ C/CPP 练习与复习
     * [线性表](section-07/linear-list/summary.md)/ [链表的插入、删除和查询](section-07/linear-list/case_2.c)/ 链表的反转
     * 动态数组
     * 动态链表
-    * 栈 / 顺序栈 / 基于链表实现的栈
+    * 栈 / 队列
+    * 树 / 二叉树
     * Map
 * [section-08](section-08/summary.md)
     * [冒泡排序](section-05/case_2.c)
-    * [选择排序](section-07/case_3.c)
+    * [选择排序](section-07/linear-list/case_3.c)
+    * [插入排序](section-08/case_1.c)
 * [section-09 面向接口编程](section-09/summary.md)
     * 定义函数指针
     * 定义实现函数指针的函数
