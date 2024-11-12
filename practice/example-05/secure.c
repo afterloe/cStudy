@@ -8,16 +8,43 @@
 #include <string.h>
 #include <time.h>
 
-void decode_file(const char* srcPath, const char* de) {
-    srand(time(NULL));
-    FILE* src = fopen(filepath, "r");
-    if (src == NULL) {
-        perror("open");
+void codeFile(const char *srcPath, const char *dest) {
+    FILE* srcFile = fopen(srcPath, "rb");
+    if (NULL == srcFile) {
+        perror("fopen :");
         return;
     }
-    FILE* dst = fopen("b.cfg", "w");
+    FILE* desFile = fopen(srcPath, "wb+");
+    srand(time(NULL));
+    while(!feof(srcFile)) {
+        short c = (short) fgetc(srcFile);
+        c = c << 4;
+        c = c | 0x8000;
+        c = c + rand() % 0x10;
+        fprintf(desFile, "%hd", c);
+    }
+    fclose(srcFile);
+    fclose(desFile);
+    srcFile = NULL;
+    desFile = NULL;
+}
 
-
-    fclose(src);
-    fclose(dst);
+void decodeFile(const char *srcPath, const char *dest) {
+    FILE* srcFile = fopen(srcPath, "rb");
+    if (NULL == srcFile) {
+        perror("fopen :");
+        return;
+    }
+    FILE* desFile = fopen(dest, "wb+");
+    short c = 0;
+    while(!feof(srcFile)) {
+        fscanf(srcFile, "%hd", &c);
+        c <<= 1;
+        c >>= 5;
+        fputc((char) c, desFile);
+    }
+    fclose(srcFile);
+    fclose(desFile);
+    srcFile = NULL;
+    desFile = NULL;
 }
