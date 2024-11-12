@@ -33,10 +33,15 @@ C/CPP 练习与复习
     * 文件状态、文件重命名及文件删除
 * [section-07](section-07/summary.md)
     * 数据结构
-    * 链表/ [动态链表的插入、删除和查询](section-07/case_2.c)/ 链表的反转
+    * [链表](section-07/01_link_list_head.c)/ [链表的插入、删除和查询](section-07/case_2.c)/ 链表的反转
+    * 动态数组
+    * 动态链表
+    * 栈 / 顺序栈 / 基于链表实现的栈
+    * Map
 * [section-08](section-08/summary.md)
     * [冒泡排序](section-05/case_2.c)
     * [选择排序](section-07/case_3.c)
+* [section-09 面向接口编程](section-09/summary.md)
 * 备忘录
     * [GCC的使用以及库的创建和使用](other/gcc_usage.md)
     * [libevent 网络工具库](other/libevent_usage.md)

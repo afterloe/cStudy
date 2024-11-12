@@ -1,7 +1,6 @@
 目录
 ===
 
-
 * [section-00](section-00/summary.md)
     * hello c
     * 键盘输入获取
@@ -31,7 +30,7 @@
     * 文件状态、文件重命名及文件删除
 * [section-07](section-07/summary.md)
     * 数据结构
-    * 链表/ [动态链表的插入、删除和查询](section-07/case_2.c)/ 链表的反转
+    * [链表](section-07/01_link_list_head.c)/ [动态链表的插入、删除和查询](section-07/case_2.c)/ 链表的反转
 * [section-08](section-08/summary.md)
     * [冒泡排序](section-05/case_2.c)
     * [选择排序](section-07/case_3.c)
