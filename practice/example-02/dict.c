@@ -76,8 +76,8 @@ Dict *load_dict_by_txt(const char *filepath, Dict **head) {
         *head = add_dict(*head, node);
     }
 
-    free(fp);
     free(buf);
+    fclose(fp);
     printf("load %d item \n", item);
     return *head;
 }
