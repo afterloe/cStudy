@@ -1,15 +1,13 @@
+.PHONY: all
+.ONESHELL:
+all: clean build
+
+.PHONY: clean
 .ONESHELL:
 clean:
 	@rm -rf dist/*
 
+.PHONY: build clean
 .ONESHELL:
-all:
-	clean
-	build
-
-.ONESHELL:
-build:
-	clean
+build: clean
 	@gcc -fdiagnostics-color=always -I. -o dist/testDynamicArr `find . -name '*.c'`
-
-.PHONY: build, all, clean

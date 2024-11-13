@@ -5,31 +5,36 @@
 #include "array_list.h"
 
 extern void help();
-extern void init(InitList, void*);
-extern void version(ListLength, void*);
+
+extern void *create(InitList, void *);
+
+extern void version(ListLength, ListEmpty, void *);
+
+extern void insertOne(ListInsert, void *);
 
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
     char cmd;
-    void* list = NULL;
-    while (1)
-    {
+    void *list = NULL;
+    while (1) {
         printf("input cmd to test dynamic array: ");
         // 由于scanf一次输入 char/n 等内容，所以 在%前加一个空格可以隔离开
         scanf(" %c", &cmd);
-        switch (cmd)
-        {
-        case 'q':
-            printf("byb ! \n");
-            return EXIT_FAILURE;
-        case 'i':
-            init(initList, list);
-            break;
-        case 'v':
-            version(length, list);
-            break;
-        default:
-            help();
+        switch (cmd) {
+            case 'q':
+                printf("byb ! \n");
+                return EXIT_FAILURE;
+            case 'c':
+                list = create(initList, list);
+                break;
+            case 'i':
+                insertOne(insert, list);
+                break;
+            case 'v':
+                version(length, isEmpty, list);
+                break;
+            default:
+                help();
         }
     }
 
@@ -38,14 +43,31 @@ int main(int argc, char** argv) {
 
 void help() {
     printf("Cmds: \n");
+    printf("\tc - create list\n");
     printf("\tq - quit\n");
 }
 
-void init(InitList func, void* list) {
+void *create(const InitList func, void *list) {
     list = func(list, 10);
+    return list;
 }
 
-void version(ListLength func, void* list) {
-    int size = func(list);
-    printf("size is %d \n", size);
+void version(const ListLength sizeFunc, const ListEmpty emptyFunc, void *list) {
+    const long size = sizeFunc(list);
+    printf("size is %ld \n", size);
+    printf("array is %s \n", emptyFunc(list) ? "empty" : "not empty");
+}
+
+void insertOne(const ListInsert func, void *list) {
+    printf("which data you want to insert: ");
+    int num, idx;
+    scanf("%d", &num);
+    printf("where you want to insert: ");
+    scanf("%d", &idx);
+    const int ret = func(list, idx, &num);
+    if (-1 == ret) {
+        printf("Error inserting element %d \n", num);
+    } else {
+        printf("inserting success element %d in %d \n", num, ret);
+    }
 }

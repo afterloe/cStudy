@@ -24,7 +24,7 @@ extern void* initList(void* array, int size);
  * @param array 现性表
  * @return 0 - false | 1 - true
  */
-extern int isEmpty(Array array);
+extern int isEmpty(const void* array);
 
 /**
  * @brief 清空线性表
@@ -61,7 +61,7 @@ extern int locate(Array* array, void* elem);
  * @param elem 插入的元素
  * @return 插入成功返回插入位置的下标，否则，返回-1
  */
-extern int insert(Array* array, int idx, void* elem);
+extern int insert(void* array, int idx, void* elem);
 
 /**
  * @brief 删除线性表中的第i个元素
