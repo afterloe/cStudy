@@ -89,6 +89,15 @@ long length(void* array) {
     return ((Array*)array)->size;
 }
 
-int destroy(Array* array) {
-    return 0;
+int destroy(void* array) {
+    if (NULL == array) {
+        printf("ARRAY IS NULL! \n");
+        return -1L;
+    }
+    Array* ptr = array;
+    free(ptr->data);
+    ptr->data = NULL;
+    ptr->size = 0;
+    ptr->capacity = 0;
+    return 1;
 }

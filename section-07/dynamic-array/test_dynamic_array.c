@@ -12,6 +12,8 @@ extern void version(ListLength, ListEmpty, void *);
 
 extern void insertOne(ListInsert, void *);
 
+extern void destroyList(DestroyList, void *);
+
 
 int main(int argc, char **argv) {
     char cmd;
@@ -22,6 +24,8 @@ int main(int argc, char **argv) {
         scanf(" %c", &cmd);
         switch (cmd) {
             case 'q':
+                destroyList(destroy, list);
+                list = NULL;
                 printf("byb ! \n");
                 return EXIT_FAILURE;
             case 'c':
@@ -70,4 +74,12 @@ void insertOne(const ListInsert func, void *list) {
     } else {
         printf("inserting success element %d in %d \n", num, ret);
     }
+}
+
+void destroyList(const DestroyList func, void *list) {
+    const int ret = func(list);
+    if (1 != ret) {
+        printf("Error in destroying element \n");
+    }
+    free(list);
 }
