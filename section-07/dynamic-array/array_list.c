@@ -1,10 +1,23 @@
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "array_list.h"
 
 
-Array* initList(Array* array) {
-    return NULL;
+void* initList(void* array, int capacity) {
+    Array *ptr = malloc(sizeof(Array));
+    if (0 == ptr) {
+        perror("malloc :");
+        return NULL;
+    }
+    if (0 <= capacity) {
+        capacity = 1;
+    }
+    ptr->data = calloc(capacity, sizeof(void*));
+    ptr->size = 0;
+    ptr->capacity = capacity;
+    array = ptr;
+    return ptr;
 }
 
 int isEmpty(Array array) {
@@ -31,8 +44,12 @@ void* delete(Array* array, int idx, void* elem) {
     return NULL;
 }
 
-long length(Array array) {
-    return 0;
+long length(void* ptr) {
+    if (NULL == ptr) {
+        printf("ARRAY IS NULL! \n");
+        return -1L;
+    }
+    return ((Array*)ptr)->size;
 }
 
 int destroy(Array* array) {

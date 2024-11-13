@@ -3,8 +3,9 @@
 
 typedef struct __Node
 {
-    void ** data;
-    int size;
+    void** data; // 具体数据指针
+    int size; // 数组大小
+    int capacity;  // 数组容量
 } Array;
 
 
@@ -12,9 +13,10 @@ typedef struct __Node
  * @brief 初始化操作， 建立一个空的线性表
  *
  * @param *array 线性表头指针
+ * @param size 初始化容量
  * @return 线性表头指针
  */
-extern Array* initList(Array* array);
+extern void* initList(void* array, int size);
 
 /**
  * @brief 判断列表是否为空
@@ -77,11 +79,11 @@ extern void* delete(Array* array, int idx, void* elem);
  * @param array 线性表
  * @return 元素个数
  */
-extern long length(Array array);
+extern long length(void* array);
 
 /**
  * @brief 销毁
- * 
+ *
  * @param array 线性表
  * @return 0 - false | 1 - true
  */

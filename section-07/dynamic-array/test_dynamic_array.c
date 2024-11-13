@@ -5,12 +5,13 @@
 #include "array_list.h"
 
 extern void help();
-extern void init(InitList, L*);
+extern void init(InitList, void*);
+extern void version(ListLength, void*);
 
 
 int main(int argc, char** argv) {
     char cmd;
-    L* list = NULL;
+    void* list = NULL;
     while (1)
     {
         printf("input cmd to test dynamic array: ");
@@ -23,6 +24,9 @@ int main(int argc, char** argv) {
             return EXIT_FAILURE;
         case 'i':
             init(initList, list);
+            break;
+        case 'v':
+            version(length, list);
             break;
         default:
             help();
@@ -37,6 +41,11 @@ void help() {
     printf("\tq - quit\n");
 }
 
-void init(InitList func, L* list) {
-    func(list);
+void init(InitList func, void* list) {
+    list = func(list, 10);
+}
+
+void version(ListLength func, void* list) {
+    int size = func(list);
+    printf("size is %d \n", size);
 }
