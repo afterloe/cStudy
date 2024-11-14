@@ -16,6 +16,27 @@ typedef struct _sqQueue {
     int rear; // 尾指针， 若队列不为空， 指向队列尾元素的下一个位置
 } SqQueue;
 
+/**
+ * @brief 初始化
+ */
+extern SqQueue* InitQueue(SqQueue *Q);
+
+/**
+ * @brief 指定元素 进队列
+ */
+extern int EnQueue(SqQueue *Q, void* elem);
+
+/**
+ * @brief 队列是否为空
+ * 
+ * @return 0 - 非空 | 1 - 空
+ */
+extern int QueueEmpty(SqQueue *Q);
+
+/**
+ * @brief 指定元素 出队列
+ */
+extern void* DeQueue(SqQueue *Q, void* elem);
 
 /**
  * 基于链表实现

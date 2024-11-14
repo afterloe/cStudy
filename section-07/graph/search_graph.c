@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "matrix_graph.h"
+#include "sq_queue.h"
 
 
 #define TRUE  1
@@ -74,5 +75,82 @@ void DFSAdjTraverse(GraphAdjList GL)
         {
             DFSAdjList(GL, i);
         }
+    }
+}
+
+
+
+
+
+// 邻接矩阵 的广度遍历算法
+void BFSTraverse(MGraph G)
+{
+    int i, j;
+    SqQueue* Q;
+    for (i = 0; i < G.numVertexes; i++)
+    {
+        visited[i] = FALSE;
+    }
+    Q = InitQueue(Q); // 初始化队列
+    for (i = 0; i < G.numVertexes; i++)
+    {
+        if (visited[i])  // 若节点访问过 则跳出循环
+        {
+            continue;
+        }
+        visited[i] = TRUE;
+        printf("%p ", G.vexs[i]); // 操作节点数据
+        EnQueue(Q, i); // 压节点进入 队列
+        while(!QueueEmpty(Q)) // 如果队列不为空
+        {
+            i = DeQueue(Q, &i); // 队头出列，并将地址赋给i
+            for (j = 0; j < G.numVertexes; j++)
+            {
+                if (G.arc[i][j] == 1 && !visited[j]) // 判断其他顶点与当前顶点存在边，且未被访问过
+                {
+                    visited[j] = TRUE;
+                    printf("%p ", G.vexs[j]);
+                    EnQueue(Q, j); // 将找到的顶点加入队列
+                }
+            }
+        }
+    }
+}
+
+// 邻接表 的广度遍历算法
+void BFSAdjTraverse(GraphAdjList GL)
+{
+    int i;
+    EdgeNode *p;
+    SqQueue* Q;
+    for (i = 0; i < GL->numVertexes; i++)
+    {
+        visited[i] = FALSE;
+    }
+    Q = InitQueue(Q);
+    for (i = 0; i < GL->numVertexes; i++)
+    {
+        if(visited[i]) {
+            continue;
+        }
+        visited[i] = TRUE;
+        printf("%p ", GL->AdjList[i].data);
+        EnQueue(Q, i);
+        while (!QueueEmpty(Q))
+        {
+            i = DeQueue(Q, &i);
+            p = GL->AdjList[i].firstedge; // 找到当前顶点边表链表的头指针
+            while(p)
+            {
+                if(!visited[p->adjvex])
+                {
+                    visited[p->adjvex] = TRUE;
+                    printf("%p ", GL->AdjList[p->adjvex].data);
+                    EnQueue(Q, p->adjvex);
+                }
+                p = p->next; // 指向下一个邻接点
+            }
+        }
+        
     }
 }
