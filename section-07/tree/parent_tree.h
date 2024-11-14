@@ -58,4 +58,11 @@ typedef struct _cTree {
 } CTree;
 
 // 孩子兄弟表示法
+// > 任意一个棵树，它的结点的第一个孩子如个存在就是唯一，他的右兄弟如果存在也是唯一的
+typedef struct _cSNode {
+    TElem data;
+    struct _cSNode *firstchild;  // 左侧第一个孩子
+    struct _cSNode *rightsib; // 右兄弟
+    struct _cSNode *parent; // opt - 父结点
+} CSNode, *CSTree;
 #endif
