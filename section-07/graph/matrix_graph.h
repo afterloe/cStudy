@@ -39,7 +39,7 @@ typedef struct _graphAdjList // 图的最外层
     AdjList AdjList; // 顶点表 节点信息
     int numVertexes; // 图中顶点数
     int numEdges; // 图中边数
-} GraphAdjList;
+} *GraphAdjList;
 
 /**
  * 十字链表 - 快速计算顶点的出度和入度

@@ -30,7 +30,7 @@ void CreateMGraph(MGraph* G)
     }
 }
 
-void CreateALGraph(GraphAdjList* G)
+void CreateALGraph(GraphAdjList G)
 {
     int i, j, k;
     EdgeNode* e;

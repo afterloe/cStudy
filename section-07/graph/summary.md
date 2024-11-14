@@ -52,3 +52,16 @@ y - x > 0 出， < 0 入
 计算 V1 顶点入度的过程是：  
 根据 V1 顶点的 firstin 指针，找到存储 <V4, V1> 弧的结点；  
 由于 <V4, V1> 弧结点的 hlink 指针为 NULL，因此只找到了 1 个弧，V1 顶点的入度就为 1。  
+
+
+## 图遍历
+
+### 深度优先遍历
+
+深度优先也称深度优先搜索，简称DFS，深度优先类似于树的先序遍历。
+参考代码[search_graph.c](search_graph.c).DFSTraverse 方法
+
+### 广度优先遍历
+
+广度优先又称为广度优先搜索，简称BFS， 广度优先类似于树的层序遍历
+参考代码[search_graph.c](search_graph.c).BFSTraverse 方法
