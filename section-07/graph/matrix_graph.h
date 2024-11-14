@@ -50,7 +50,7 @@ typedef struct _arcBox {
     int headvex; //弧头 对应顶点在顺序表中的位置下标
     struct _arcBox* hlik; // hlik 指向下一个以当前顶点为弧头的弧结点；
     struct _arcBox* tlink;  // tlink 指向下一个以当前顶点为弧尾的弧结点；
-    //InfoType info; //存储弧相关信息的指针
+    EdgeType weight; // opt - 存储弧的权 相关信息
 } ArcBox;
 
 //表示顺序表中的各个顶点
