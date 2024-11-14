@@ -57,3 +57,42 @@ void CreateALGraph(GraphAdjList* G)
         G->AdjList[j].firstedge = e;
     }
 }
+
+//构建十字链表存储结构
+void CreateOLGraph(OLGraph* G)
+{
+    int i, j, k;
+    VertexType v1, v2;
+    ArcBox* p = NULL;
+
+    //输入有向图的顶点数和弧数
+    scanf("%d %d", &(G->vexnum), &(G->arcnum));
+    getchar();
+
+    //使用一维数组存储顶点数据，初始化指针域为NULL
+    for (i = 0; i < G->vexnum; i++) {
+        scanf("%c", &(G->xlist[i].data));
+        getchar();
+        G->xlist[i].firstin = NULL;
+        G->xlist[i].firstout = NULL;
+    }
+    //存储图中的所有弧
+    for (k = 0; k < G->arcnum; k++) {
+        scanf("%c %c", &v1, &v2);
+        getchar();
+        
+        //确定v1、v2在数组中的位置下标
+        i = LocateVex(G, v1);
+        j = LocateVex(G, v2);
+
+        //建立弧的结点
+        p = (ArcBox*)malloc(sizeof(ArcBox));
+        p->tailvex = i;
+        p->headvex = j;
+
+        //采用头插法插入新的p结点
+        p->hlik = G->xlist[j].firstin;
+        p->tlink = G->xlist[i].firstout;
+        G->xlist[j].firstin = G->xlist[i].firstout = p;
+    }
+}
