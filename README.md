@@ -54,7 +54,7 @@ C/CPP 练习与复习
     * 引入两个头文件实现调用
 * [section-10 Linux C](section-10/summary.md)
     * 系统调用 / 错误处理 / [系统调用相关API](section-10/system_invoke_api.md)
-    * 进程 / 通道 / 进程控制模块PCB
+    * 进程 / 通道 / 进程控制模块PCB / [进程相关API](section-10/thread_api.md)
     * 进程通信 / 管道流 / 共享存储映射
     * 信号 / 信号捕捉和处理
     * 守护进程 / 线程

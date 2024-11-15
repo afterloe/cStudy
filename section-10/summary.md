@@ -76,40 +76,15 @@ strncpy(mtime, time, strlen(time) - 1);
 * 会话（Session）和进程组。
 * 进程可以使用的资源上限（Resource Limit）
 
-### pid_t getpid(void)
-头文件:   
-   #include <sys/types.h>   
-   #include <unistd.h>    
-功能：   
-    获取本进程号（PID）  
-参数：   
-    无   
-返回值：   
-    本进程号   
+相关api参考[进程相关API](./thread_api.md)
 
+### 子进程
 
-### pid_t getppid(void)
-头文件:   
-   #include <sys/types.h>   
-   #include <unistd.h>    
-功能：    
-    获取调用此函数的进程的父进程号（PPID）    
-参数：   
-    无   
-返回值：   
-    调用此函数的进程的父进程号（PPID）    
+使用 fork() 函数得到的子进程是父进程的一个复制品，它从父进程处继承了整个进程的地址空间：包括进程上下文（进程执行活动全 过程的静态描述）、进程堆栈、打开的文件描述符、信号控制设定、进程优先级、进程组号等。    
+![alt text](pic/fork_image.png)
 
+子进程所**独有**的只有它的**进程号，计时器等（只有小量信息）**。    
+> 子进程修改变量 a，b 的值，并不影响到父进程 a，b 的值。栈独立
 
-### pid_t getpgid(pid_t pid)
-头文件:   
-   #include <sys/types.h>   
-   #include <unistd.h>    
-功能：   
-    获取进程组号（PGID）   
-参数：   
-    pid：进程号    
-返回值：    
-    参数为 0 时返回当前进程组号，否则返回参数指定的进程的进程组号     
+因此，使用 fork() 函数的代价是很大的。    
 
-> 参考代码[case_3.c](case_3.c)
-### 
