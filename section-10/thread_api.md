@@ -185,7 +185,7 @@ exec 函数族中的函数执行成功后不会返回，而且，exec 函数族�
 头文件:   
    #include <unistd.h>    
 功能：     
-    该函数可以通过name参数查看不同的属性值    
+    该函数可以通过name参数查看管道的不同的属性值    
 参数：    
     fd：文件描述符    
     name：    
@@ -209,3 +209,160 @@ eg `long num = fpatchconf(fd[0], _PC_PIPE_BUF);`
 返回值：   
     成功：0   状态码   
     失败：如果文件已经存在，则会出错且返回 -1。   
+
+
+### void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
+头文件：   
+   #include <sys/mman.h>
+功能:    
+    一个文件或者其它对象映射进内存   
+参数：    
+    addr :  指定映射的起始地址, 通常设为NULL, 由系统指定    
+    length：映射到内存的文件长度    
+    prot：  映射区的保护方式, 最常用的 :   
+        a) 读：PROT_READ   
+        b) 写：PROT_WRITE   
+        c) 读写：PROT_READ | PROT_WRITE   
+    flags：  映射区的特性, 可以是   
+        a) MAP_SHARED : 写入映射区的数据会复制回文件, 且允许其他映射该文件的进程共享, 文件必须存在，大小不为0。   
+        b) MAP_PRIVATE : 对映射区的写入操作会产生一个映射区的复制(copy - on - write), 对此区域所做的修改不会写回原文件, 使用次方式文件不必存在。    
+    fd：由open返回的文件描述符, 代表要映射的文件。    
+    offset：以文件开始处的偏移量, 必须是4k的整数倍, 通常为0, 表示从文件头开始映射    
+返回值：   
+    成功：返回创建的映射区首地址   
+    失败：MAP_FAILED宏   
+
+> 如果 使用 mmap 映射文件，则文件必须存在，且大小不为0
+
+关于mmap函数的使用总结：
+* 第一个参数写成NULL
+* 第二个参数要映射的文件大小 > 0
+* 第三个参数：PROT_READ 、PROT_WRITE
+* 第四个参数：MAP_SHARED 或者 MAP_PRIVATE
+* 第五个参数：打开的文件对应的文件描述符
+* 第六个参数：4k的整数倍，通常为0
+
+### int munmap(void *addr, size_t length)
+头文件：   
+   #include <sys/mman.h>
+功能:    
+   释放内存映射区    
+参数：    
+    addr：使用mmap函数创建的映射区的首地址    
+    length：映射区的大小    
+返回值：   
+    成功：0   
+    失败：-1   
+
+
+共享映射的方式操作文件、父子进程通信的demo, 参考这里[case_6.c](case_6.c)
+> 注意： 若使用 MAP_SHARED 方式，则文件必须存在，且大小不为0, 否则会报 Invalid argument  
+
+
+### void signal(int sig, void (*func)(int))
+头文件：   
+    #include <signal.h>   
+功能：  
+    接收到一个信号后 执行某个函数，即设置信号处理程序   
+
+参数:    
+    sig:  信号量   
+    func: 函数指针，void func(int sign)    
+
+sig参数表
+| 宏 | 信号及说明 |
+|--- | --------- |
+| SIGABRT |	(Signal Abort) 程序异常终止。
+| SIGFPE |	(Signal Floating-Point Exception) 算术运算出错，如除数为 0 或溢出（不一定是浮点运算）。
+| SIGILL |	(Signal Illegal Instruction) 非法函数映象，如非法指令，通常是由于代码中的某个变体或者尝试执行数据导致的。
+| SIGINT |	(Signal Interrupt) 中断信号，如 ctrl-C，通常由用户生成。
+| SIGSEGV |	(Signal Segmentation Violation) 非法访问存储器，如访问不存在的内存单元。
+| SIGTERM |	(Signal Terminate) 发送给本程序的终止请求信号。
+
+func 不想实现也可以用默认的宏 `SIG_DFL - 默认的信号处理程序。 | SIG_IGN - 忽视信号`
+
+
+### int kill(pid_t pid, int sig)
+头文件：   
+    #include <sys/types.h>    
+    #include <signal.h>    
+功能：   
+    给指定进程发送指定信号(不一定杀死)    
+​
+参数：   
+    pid : 取值有 4 种情况 :    
+        pid > 0:  将信号传送给进程 ID 为pid的进程。   
+        pid = 0 :  将信号传送给当前进程所在进程组中的所有进程。   
+        pid = -1 : 将信号传送给系统内所有的进程。   
+        pid < -1 : 将信号传给指定进程组的所有进程。这个进程组号等于 pid 的绝对值。   
+    sig : 信号的编号，这里可以填数字编号，也可以填信号的宏定义，可以通过命令 kill - l("l" 为字母)进行相应查看。不推荐直接使用数字，应使用宏名，因为不同操作系统信号编号可能不同，但名称一致。   
+​
+返回值：   
+    成功：0   
+    失败：-1   
+
+只能向自己创建的进程发送信号  
+
+### int raise(int sig)
+头文件：   
+    #include <signal.h>   
+功能：给当前进程发送指定信号(自己给自己发)，等价于 kill(getpid(), sig)    
+参数：   
+    sig：信号编号   
+返回值：   
+    成功：0   
+    失败：非0值   
+
+
+### void abort(void)
+头文件：   
+    #include <stdlib.h>   
+功能：给自己发送异常终止信号 6) SIGABRT，并产生core文件，等价于kill(getpid(), SIGABRT);    
+​
+参数：无   
+​
+返回值：无    
+​
+
+### unsigned int alarm(unsigned int seconds)
+头文件：   
+    #include <unistd.h>   
+功能：   
+    设置定时器(闹钟)。在指定seconds后，内核会给当前进程发送14）SIGALRM信号。进程收到该信号，默认动作终止。每个进程都有且只有唯一的一个定时器。    
+    取消定时器alarm(0)，返回旧闹钟余下秒数。    
+参数：    
+    seconds：指定的时间，以秒为单位    
+返回值：   
+    返回0或剩余的秒数    
+
+​定时，与进程状态无关(自然定时法)！就绪、运行、挂起(阻塞、暂停)、终止、僵尸……无论进程处于何种状态，alarm都计时。   
+
+
+### int setitimer(int which,  const struct itimerval *new_value, struct itimerval *old_value)
+头文件：   
+    #include <sys/time.h>   
+功能：    
+    设置定时器(闹钟)。 可代替alarm函数。精度微秒us，可以实现周期定时。    
+参数：    
+    which：指定定时方式    
+        a) 自然定时：ITIMER_REAL → 14）SIGALRM计算自然时间    
+        b) 虚拟空间计时(用户空间)：ITIMER_VIRTUAL → 26）SIGVTALRM  只计算进程占用cpu的时间   
+        c) 运行时计时(用户 + 内核)：ITIMER_PROF → 27）SIGPROF计算占用cpu及执行系统调用的时间   
+    new_value：struct itimerval, 负责设定timeout时间    
+        ```
+        struct itimerval {     
+            struct timerval it_interval; // 闹钟触发周期     
+            struct timerval it_value;    // 闹钟触发时间   
+        };   
+        struct timeval {    
+            long tv_sec;            // 秒    
+            long tv_usec;           // 微秒    
+        }    
+        itimerval.it_value： 设定第一次执行function所延迟的秒数     
+        itimerval.it_interval：  设定以后每几秒执行function
+        ```   
+​
+    old_value： 存放旧的timeout值，一般指定为NULL     
+返回值：    
+    成功：0   
+    失败：-1    

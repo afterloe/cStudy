@@ -12,6 +12,13 @@ int main()
     int len = lseek(fd, 0, SEEK_END); // 读取文件大小
 
     void* ptr = mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+    /*
+    // 创建匿名内存映射区 - 文件可以不存在
+    int len = 4096;
+    void *ptr = mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANON, -1, 0);
+    */
+
     if (ptr == MAP_FAILED)
     {
         perror("mmap error :");
