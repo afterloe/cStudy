@@ -35,8 +35,9 @@
     * 动态链表
     * 栈 / 队列
     * 树 / 二叉树
-    * Map
+    * 图
 * [section-08](section-08/summary.md)
+    * 查询 / 二叉树查询 
     * [冒泡排序](section-05/case_2.c)
     * [选择排序](section-07/linear-list/case_3.c)
     * [插入排序](section-08/case_1.c)
@@ -45,6 +46,8 @@
     * 定义实现函数指针的函数
     * 实现函数
     * 调用
+* [section-10 Linux C](section-10/summary.md)
+    * 系统调用
 
 
 
