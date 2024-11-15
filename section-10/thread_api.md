@@ -82,7 +82,7 @@
 ### pid_t wait(int *status)
 头文件:   
    #include <sys/types.h>    
-    #include <sys/wait.h>   
+   #include <sys/wait.h>   
 功能：   
     等待任意一个子进程结束，如果任意一个子进程结束了，此函数会回收该子进程的资源。    
 参数：    
@@ -95,7 +95,7 @@
 ### pid_t waitpid(pid_t pid, int *status, int options)
 头文件:   
    #include <sys/types.h>    
-    #include <sys/wait.h>   
+   #include <sys/wait.h>   
 功能：   
     等待子进程终止，如果子进程终止了，此函数会回收子进程的资源。   
 参数：   
@@ -161,3 +161,51 @@ exec 函数族的 6 个函数看起来似乎很复杂，但实际上无论是作
 | e(environment) |	存有环境变量字符串地址的指针数组的地址
 
 exec 函数族中的函数执行成功后不会返回，而且，exec 函数族下面的代码执行不到。只有调用失败了，它们才会返回 -1，失败后从原程序的调用点接着往下执行   
+
+
+### int pipe(int pipefd[2])
+头文件:   
+   #include <unistd.h>    
+功能：   
+    创建无名管道。   
+​
+参数：   
+    pipefd : 为 int 型数组的首地址，其存放了管道的文件描述符 pipefd[0]、pipefd[1]。   
+    
+    当一个管道建立时，它会创建两个文件描述符 fd[0] 和 fd[1]。其中 fd[0] 固定用于读管道，而 fd[1] 固定用于写管道。一般文件 I/O的函数都可以用来操作管道(lseek() 除外)。   
+​
+返回值：
+    成功：0   
+    失败：-1   
+
+> 参考代码[case_5.c](case_5.c)
+
+
+### long fpathconf(int fd, int name)
+头文件:   
+   #include <unistd.h>    
+功能：     
+    该函数可以通过name参数查看不同的属性值    
+参数：    
+    fd：文件描述符    
+    name：    
+        _PC_PIPE_BUF，查看管道缓冲区大小    
+        _PC_NAME_MAX，文件名字字节数的上限   
+返回值：   
+    成功：根据name返回的值的意义也不同。    
+    失败： -1    
+eg `long num = fpatchconf(fd[0], _PC_PIPE_BUF);`
+
+
+### int mkfifo(const char *pathname, mode_t mode)
+头文件:   
+    #include <sys/types.h>    
+    #include <sys/stat.h>   
+功能：   
+    命名管道的创建。   
+参数：   
+    pathname : 普通的路径名，也就是创建后 FIFO 的名字。   
+    mode : 文件的权限，与打开普通文件的 open() 函数中的 mode 参数相同。(0666)   
+返回值：   
+    成功：0   状态码   
+    失败：如果文件已经存在，则会出错且返回 -1。   
