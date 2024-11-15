@@ -54,6 +54,7 @@
 * 备忘录
     * [C/C++注释](other/explanatory_note.md)
     * [GCC的使用以及库的创建和使用](other/gcc_usage.md)
+    * [makefile和make](other/make_usage.md)
     * [libevent 网络工具库](other/libevent_usage.md)
     * [socket模拟工具、内存泄漏检测工具](other/tools.md)
 

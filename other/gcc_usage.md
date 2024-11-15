@@ -14,7 +14,7 @@ gcc -fdiagnostics-color=always -o dist/a.out -I. func.c main.c
  | -o file | 指定生成的输出文件名为file |
  | -E | 只进行预处理 |
  | -S | 只进行预处理和编译 |
- | -c | 只进行预处理、编译和汇编 |
+ | -c | 只进行预处理、编译和汇编,输出`.o`文件 |
  | -Wall | 显示所有警告信息 |
  | -Werror | 所有警告信息当错误处理
  | -g | 包含调试信息
