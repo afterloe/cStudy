@@ -133,14 +133,15 @@ FIFO严格遵循先进先出（first in first out），对管道及FIFO的读总
         b) 写：PROT_WRITE   
         c) 读写：PROT_READ | PROT_WRITE   
     flags：  映射区的特性, 可以是   
-        a) MAP_SHARED : 写入映射区的数据会复制回文件, 且允许其他映射该文件的进程共享。   
-        b) MAP_PRIVATE : 对映射区的写入操作会产生一个映射区的复制(copy - on - write), 对此区域所做的修改不会写回原文件。    
+        a) MAP_SHARED : 写入映射区的数据会复制回文件, 且允许其他映射该文件的进程共享, 文件必须存在，大小不为0。   
+        b) MAP_PRIVATE : 对映射区的写入操作会产生一个映射区的复制(copy - on - write), 对此区域所做的修改不会写回原文件, 使用次方式文件不必存在。    
     fd：由open返回的文件描述符, 代表要映射的文件。    
     offset：以文件开始处的偏移量, 必须是4k的整数倍, 通常为0, 表示从文件头开始映射    
 返回值：   
     成功：返回创建的映射区首地址   
     失败：MAP_FAILED宏   
 
+> 如果 使用 mmap 映射文件，则文件必须存在，且大小不为0
 
 关于mmap函数的使用总结：
 * 第一个参数写成NULL
@@ -163,4 +164,5 @@ FIFO严格遵循先进先出（first in first out），对管道及FIFO的读总
     失败：-1   
 
 
-共享映射的方式操作文件、父子进程通信的demo,参考这里[case_6.c](case_6.c)
+共享映射的方式操作文件、父子进程通信的demo, 参考这里[case_6.c](case_6.c)
+> 注意： 若使用 MAP_SHARED 方式，则文件必须存在，且大小不为0, 否则会报 Invalid argument  
