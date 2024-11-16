@@ -52,7 +52,7 @@
     * 进程通信 / 管道流 / 共享存储映射
     * 信号 / 信号捕捉和处理
     * 守护进程 / 线程
-    * 锁 / 条件变量
+    * 锁 / 条件变量 / 生产者消费者条件变量模型
 * [section-11 Socket c](section-11/summary.md)
     * MAC / IP / Socket / TCP / UDP
     * 多路IO / SELECT / POLL / EPOLL
