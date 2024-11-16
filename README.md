@@ -51,14 +51,14 @@ C/CPP 练习与复习
     * 定义函数指针
     * 定义实现函数指针的函数
     * 实现函数
-    * 引入两个头文件实现调用
+    * 调用
 * [section-10 Linux C](section-10/summary.md)
     * 系统调用 / 错误处理 / [系统调用相关API](section-10/system_invoke_api.md)
     * 进程 / 通道 / 进程控制模块PCB / [进程相关API](section-10/thread_api.md)
     * 进程通信 / 管道流 / 共享存储映射
-    * 信号 / 信号捕捉和处理
-    * 守护进程 / 线程
-    * 锁 / 条件变量
+    * 信号 / 信号捕捉和处理 / PV操作  / [相关API](section-10/pv_option_api.md)
+    * 守护进程 / 线程 / [线程池相关API](section-10/thread_pool_api.md)
+    * 锁 / 条件变量 / 生产者消费者条件变量模型 / [相关API](section-10/mutex_api.md)
 * [section-11 Socket c](section-11/summary.md)
     * MAC / IP / Socket / TCP / UDP
     * 多路IO / SELECT / POLL / EPOLL
