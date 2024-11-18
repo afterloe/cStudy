@@ -15,11 +15,11 @@
 int main(int argc, char** argv)
 {
     int ss, port, ret;
-    // if (argc != 3)
-    // {
-    //     printf("usage <SELECT> hostname port \n");
-    //     return EXIT_FAILURE;
-    // }
+    if (argc != 3)
+    {
+        printf("usage <SELECT> hostname port \n");
+        return EXIT_FAILURE;
+    }
     ss = socket(AF_INET6, SOCK_STREAM, 0);
     if (-1 == ss)
     {
@@ -30,8 +30,7 @@ int main(int argc, char** argv)
 
     struct sockaddr_in6 addr;
     addr.sin6_family = AF_INET6;
-    // addr.sin6_port = htons(port);
-    addr.sin6_port = htons(9200);
+    addr.sin6_port = htons(port);
     addr.sin6_addr = in6addr_any;
 
     // 设置端口复用

@@ -127,6 +127,76 @@ bind()的作用是将参数 sockfd 和 addr 绑定在一起，使 sockfd 这个�
     失败返回-1, 设置 errno        
 
 
+### ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *src_addr, socklen_t *addrlen)
+头文件:    
+    #include <sys/types.h> /* See NOTES */   
+    #include <sys/socket.h>   
+功能：
+    系统调用，用于从套接字接收数据。该函数通常与无连接的数据报服务（如 UDP）一起使用       
+参数:    
+    sockfd：一个已打开的套接字的描述符    
+    buf：一个指针，指向用于存放接收到的数据的缓冲区   
+    len：缓冲区的大小（以字节为单位）   
+    flags：控制接收行为的标志。通常可以设置为0，但以下是一些可用的标志：   
+        MSG_WAITALL：尝试接收全部请求的数据。函数可能会阻塞，直到收到所有数据。   
+        MSG_PEEK：查看即将接收的数据，但不从套接字缓冲区中删除它。   
+        其他一些标志还可以影响函数的行为，但在大多数常规应用中很少使用。   
+    src_addr：一个指针，指向一个 sockaddr 结构，用于保存发送数据的源地址    
+    addrlen：一个值-结果参数。开始时，它应该设置为 src_addr 缓冲区的大小。当 `recvfrom()` 返回时，该值会被修改为实际地址的长度（以字节为单位）。    
+返回值：   
+    在成功的情况下，recvfrom() 返回接收到的字节数。   
+    如果没有数据可读或套接字已经关闭，那么返回值为0。   
+    出错时，返回 -1，并设置全局变量 errno 以指示错误类型。   
+
+```c
+struct sockaddr_in sender;
+socklen_t sender_len = sizeof(sender);
+char buffer[1024];
+
+int bytes_received = recvfrom(sockfd, buffer, sizeof(buffer), 0,
+                              (struct sockaddr*)&sender, &sender_len);
+if (bytes_received < 0) {
+    perror("recvfrom failed");
+    // handle error
+}
+```
+
+### ssize_t sendto(int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen)
+头文件:    
+    #include <sys/types.h> /* See NOTES */   
+    #include <sys/socket.h>   
+功能：
+    系统调用，用于发送数据到一个指定的地址。它经常与无连接的数据报协议，如UDP，一起使用   
+参数:    
+    sockfd：一个已打开的套接字的描述符   
+    buf：一个指针，指向要发送的数据的缓冲区     
+    len：要发送的数据的大小（以字节为单位）     
+    flags：控制发送行为的标志。通常可以设置为0。一些可用的标志包括：    
+        MSG_CONFIRM：在数据报协议下告诉网络层该数据已经被确认   
+        MSG_DONTROUTE：不查找路由，数据报将只发送到本地网络      
+        其他标志可以影响函数的行为，但在大多数常规应用中很少使用     
+    dest_addr：指向 sockaddr 结构的指针，该结构包含目标地址和端口信息     
+    addrlen：dest_addr 缓冲区的大小（以字节为单位）     
+返回值：    
+    成功时，sendto() 返回实际发送的字节数。     
+    出错时，返回 -1 并设置全局变量 errno 以指示错误类型。    
+
+```c
+struct sockaddr_in receiver;
+receiver.sin_family = AF_INET;
+receiver.sin_port = htons(12345);  // Some port number
+inet_pton(AF_INET, "192.168.1.1", &receiver.sin_addr);  // Some IP address
+
+char message[] = "Hello, World!";
+ssize_t bytes_sent = sendto(sockfd, message, sizeof(message), 0,
+                            (struct sockaddr*)&receiver, sizeof(receiver));
+if (bytes_sent < 0) {
+    perror("sendto failed");
+    // handle error
+}
+```
+
+
 ### int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
 头文件:    
     #include <sys/types.h> /* See NOTES */   
@@ -161,7 +231,8 @@ bind()的作用是将参数 sockfd 和 addr 绑定在一起，使 sockfd 这个�
     #include <sys/time.h>    
     #include <sys/types.h>    
     #include <unistd.h>    
-功能: 多路复用I/O - SELECT 模型
+功能: 
+    多路复用I/O - SELECT 模型    
 参数:    
     nfds:监控的文件描述符集里最大文件描述符加 1，因为此参数会告诉内核检测前多少个文件描述符的状态   
     readfds：监控有读数据到达文件描述符集合，传入传出参数   
@@ -172,10 +243,11 @@ bind()的作用是将参数 sockfd 和 addr 绑定在一起，使 sockfd 这个�
         2.设置 timeval，等待固定时间   
         3.设置 timeval 里时间均为 0，检查描述字后立即返回，轮询   
 返回值：    
-    成功返回 0   
+    成功返回 就绪描述字的个数  
+    超时 0   
     失败返回-1，设置 errno   
 
-timeval 内容 和 FD 内容描述
+timeval结构体 和 select FD 操作函数的描述
 ```c
 struct timeval
 {
@@ -183,10 +255,36 @@ struct timeval
     long tv_usec; /* microseconds， 毫秒 */
 }
 
-void FD_CLR(int fd, fd_set *set);
-
-//把文件描述符集合里 fd 位清 0
-int FD_ISSET(int fd, fd_set *set); //测试文件描述符集合里 fd 是否置 1
-void FD_SET(int fd, fd_set *set);//把文件描述符集合里 fd 位置 1
-void FD_ZERO(fd_set *set);//把文件描述符集合里所有位清 0
+void FD_CLR(int fd, fd_set *set);  // 删除，把文件描述符集合里 fd 位清 0
+int FD_ISSET(int fd, fd_set *set); // 是否变动，测试文件描述符集合里 fd 是否置 1
+void FD_SET(int fd, fd_set *set); // 添加， 把文件描述符集合里 fd 位置 1
+void FD_ZERO(fd_set *set); // 初始化，把文件描述符集合里所有位清 0
 ```
+
+
+### int pselect(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, const struct timespec *timeout, const sigset_t *sigmask)
+头文件:    
+    #include <sys/select.h> /* According to earlier standards */   
+    #include <sys/time.h>    
+    #include <sys/types.h>    
+    #include <unistd.h>    
+功能: 
+    多路复用I/O - PSELECT 模型    
+参数:    
+    nfds:监控的文件描述符集里最大文件描述符加 1，因为此参数会告诉内核检测前多少个文件描述符的状态   
+    readfds：监控有读数据到达文件描述符集合，传入传出参数   
+    writefds：监控写数据到达文件描述符集合，传入传出参数   
+    exceptfds： 监控异常发生达文件描述符集合,如带外数据到达异常，传入传出参数   
+    timeout： 定时阻塞监控时间，3 种情况   
+        1.NULL，永远等下去   
+        2.设置 timeval，等待固定时间   
+        3.设置 timeval 里时间均为 0，检查描述字后立即返回，轮询   
+    sigmask:    
+        1.信号集,指定屏蔽        
+        2.NULL,不屏蔽    
+返回值：  
+    成功返回 就绪描述字的个数  
+    超时 0   
+    失败返回-1，设置 errno   
+
+其余操作同`SELECT`
