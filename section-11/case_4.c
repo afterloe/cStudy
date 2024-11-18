@@ -1,3 +1,6 @@
+/**
+ * ipv6 客户端
+ */
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -19,12 +22,17 @@ int main()
     struct sockaddr_in6 servadd;
     servadd.sin6_family = AF_INET6;
     servadd.sin6_port = htons(9200);
-    // servadd.sin6_addr = in6addr_any;
+    servadd.sin6_addr = in6addr_any; // 默认本地回环 ::1
 
-    char ip[16] = "::1";
-    const char* addr = (const char*)&servadd.sin6_addr.s6_addr;
-    inet_pton(AF_INET6, addr, ip);
-    
+    // 若指定ip地址， 需要进行 大小段地址转换
+
+    // char ip[64] = "fe80::9c52:5446:eca6:abba";
+    // const char* addr = (const char*)&servadd.sin6_addr.s6_addr;
+    // inet_pton(AF_INET6, addr, ip);
+
+    // 1.使用IPv6 链路本地地址， 需要设置sin6_scope_id，才能成功通信。
+    // 2.IPv6 全局地址，不需要设置sin6_scope_id，就可以成功通信。
+    // servadd.sin6_scope_id = 0x20;
 
     ret = connect(sfd, (struct sockaddr*)&servadd, sizeof(servadd));
     if (ret == -1)

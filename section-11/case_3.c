@@ -1,3 +1,6 @@
+/**
+ * ip6 服务端
+ */
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -20,9 +23,12 @@ int main(int argc, char** args)
     struct sockaddr_in6 servadd;
     servadd.sin6_family = AF_INET6;
     servadd.sin6_port = htons(9200);
-    char ip[32] = ":::";
-    const char* addr = (const char*)&servadd.sin6_addr.s6_addr;
-    inet_pton(AF_INET6, addr, ip);
+    servadd.sin6_addr = in6addr_any;
+
+    // 指定监听地址 需要进行大小端转换
+    // char ip[32] = ":::";
+    // const char* addr = (const char*)&servadd.sin6_addr.s6_addr;
+    // inet_pton(AF_INET6, addr, ip);
 
     // 绑定
     ret = bind(sfd, (struct sockaddr*)&servadd, sizeof(servadd));
