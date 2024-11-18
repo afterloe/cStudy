@@ -15,156 +15,27 @@ Socket本身有“插座”的意思，在Linux环境下，用于表示进程间
 
 
 代码参考:
-[IPV6 Server](case_3.c) / [IPV6 Client](case_4.c)    
+[IPV6 Server](case_3.c) / [IPV6 Client](case_4.c)       
 
-重点api如下：
+重点api 可以参考 [socket_api.md](./socket_api.md)
 
-### uint16_t htons(uint16_t hostlong)
-头文件:   
-    #include <arpa/inet.h>   
-功能：
-    将端口号换为字节序       
-参数:    
-    hostlong: 端口号   
-返回值：   
-    字节序
+## 高并发服务器
 
->eg `servadd.sin6_port = htons(9200)`
+使用多进程并发服务器时要考虑以下几点：
 
+1. 父进程最大文件描述个数(父进程中需要 close 关闭 accept 返回的新文件描述符)
+2. 系统内创建进程个数(与内存大小相关)
+3. 进程创建过多是否降低整体服务性能(进程调度)
+4. 调整进程内最大文件描述符上限
+5. 线程如有共享数据，考虑线程同步
+6. 服务于客户端线程退出时，退出处理。（退出值，分离态）
+7. 系统负载，随着链接客户端增加，导致其它线程不能及时得到 CPU
 
+## 多路I/O转接服务器
+多路 IO 转接服务器也叫做多任务 IO 服务器。该类服务器实现的主旨思想是，不再由应用程序自己监视客户端连接，取而代之由内核替应用程序监视文件。
 
-### uint32_t htonl(uint32_t hostlong)
-头文件:   
-    #include <arpa/inet.h>   
-功能：
-    将字节序转换为端口号       
-参数:    
-    hostlong: 网络字节序   
-返回值：   
-    端口号
+### SELECT
+select 能监听的文件描述符个数受限于 FD_SETSIZE，一般为 1024，单纯改变进程打开的文件描述符个数并不能改变 select 监听文件个数。
+1024 以下客户端时使用 select 是很合适的，但如果链接客户端过多，select 采用的是轮询模型，会大大降低服务器响应效率，不应在 select 上投入更多精力。
 
->eg `ntohs(client.sin6_port)`
-    
-
-### int inet_pton (int domain, const char *addr, void *input)
-头文件:   
-    #include <arpa/inet.h>   
-功能：
-    将ip地址转换为字节序        
-参数:    
-    domain:   
-        AF_INET 这是大多数用来产生 socket 的协议，使用 TCP 或 UDP 来传输，用 IPv4 的地址   
-        AF_INET6 与上面类似，不过是来用 IPv6 的地址    
-        AF_UNIX 本地协议，使用在 Unix 和 Linux 系统上，一般都是当客户端和服务器在同一台及其上的时候使用       
-    addr: 地址， struct sockaddr的目标地址    
-    input: 输入的地址，例如"127.0.0.1"    
-返回值：     
-    成功：返回指向新创建的 socket 的文件描述符    
-    失败：返回-1，设置 errno  
-
->eg `char ip[32] = ":::"; const char* addr = (const char*)&servadd.sin6_addr.s6_addr; inet_pton(AF_INET6, addr, ip);`
-
-
-### const char * inet_ntop(int domain, const char *addr, char *buf, int bufsize)
-头文件:   
-    #include <arpa/inet.h>   
-功能：
-    将字节序转换为ip地址        
-参数:    
-    domain:   
-        AF_INET 这是大多数用来产生 socket 的协议，使用 TCP 或 UDP 来传输，用 IPv4 的地址   
-        AF_INET6 与上面类似，不过是来用 IPv6 的地址    
-        AF_UNIX 本地协议，使用在 Unix 和 Linux 系统上，一般都是当客户端和服务器在同一台及其上的时候使用       
-    addr: 地址， struct sockaddr的目标地址    
-    buf: 读取的地址，例如"char client_ip[32] = { 0 }"     
-    bufsize: 读取的地址的大小     
-返回值：     
-    ip的字符串
-
-> eg: `char client_ip[32] = { 0 }; inet_ntop(AF_INET6, &client.sin6_addr.s6_addr, client_ip, sizeof(client_ip))`
-
-
-详见代码[case_1.c](case_1.c); [点分制ip转换子节序](case_2.c);
-
-
-### int socket(int domain, int type, int protocol)
-头文件:   
-    #include <sys/types.h> /* See NOTES */   
-    #include <sys/socket.h>   
-功能：
-    创建一个Socket客户端   
-参数:  
-    domain:   
-        AF_INET 这是大多数用来产生 socket 的协议，使用 TCP 或 UDP 来传输，用 IPv4 的地址   
-        AF_INET6 与上面类似，不过是来用 IPv6 的地址    
-        AF_UNIX 本地协议，使用在 Unix 和 Linux 系统上，一般都是当客户端和服务器在同一台及其上的时候使用    
-    type:   
-        SOCK_STREAM 这个协议是按照顺序的、可靠的、数据完整的基于字节流的连接。这是一个使用最多的 socket 类型，这个 socket是使用 TCP 来进行传输。   
-        SOCK_DGRAM 这个协议是无连接的、固定长度的传输调用。该协议是不可靠的，使用 UDP 来进行它的连接。    
-        SOCK_SEQPACKET 该协议是双线路的、可靠的连接，发送固定长度的数据包进行传输。必须把这个包完整的接受才能进行读取。     
-        SOCK_RAW socket 类型提供单一的网络访问，这个 socket 类型使用 ICMP 公共协议。（ping、traceroute 使用该协议）    
-        SOCK_RDM 这个类型是很少使用的，在大部分的操作系统上没有实现，它是提供给数据链路层使用，不保证数据包的顺序       
-    protocol:    
-        传 0 表示使用默认协议。     
-返回值：     
-    成功：返回指向新创建的 socket 的文件描述符    
-    失败：返回-1，设置 errno    
-
-
-### int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
-头文件:   
-    #include <sys/types.h> /* See NOTES */   
-    #include <sys/socket.h>   
-功能：
-    绑定端口   
-参数:  
-    sockfd: socket 文件描述符    
-    addr: 构造出 IP 地址加端口号   
-    addrlen: sizeof(addr)长度    
-返回值：   
-    成功返回 0    
-    失败返回-1, 设置 errno    
-
-bind()的作用是将参数 sockfd 和 addr 绑定在一起，使 sockfd 这个用于网络通讯的文件描述符监听 addr 所描述的地址和端口号。struct sockaddr *是一个通用指针类型，addr 参数实际上可以接受多种协议的 sockaddr结构体，而它们的长度各不相同，所以需要第三个参数 addrlen 指定结构体的长度。 
-
-
-### int listen(int sockfd, int backlog)
-头文件:    
-    #include <sys/types.h> /* See NOTES */   
-    #include <sys/socket.h>   
-功能：
-    监听端口并启动服务   
-参数:    
-    sockfd: socket 文件描述符   
-    backlog:  指定队列的最大长度，用于记录正在连接但尚未完成的客户端请求       
-返回值：   
-    成功返回 0    
-    失败返回-1, 设置 errno        
-
-
-### int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
-头文件:    
-    #include <sys/types.h> /* See NOTES */   
-    #include <sys/socket.h>   
-功能：接收客户端请求    
-参数:    
-    sockdf: socket 文件描述符    
-    addr: 传出参数，返回链接客户端地址信息，含 IP 地址和端口号    
-    addrlen: 传入传出参数（值-结果）,传入 sizeof(addr)大小，函数返回时返回真正接收到地址结构体的大小   
-返回值：    
-    成功返回一个新的 socket 文件描述符，用于和客户端通信    
-    失败返回-1，设置 errno    
-
-
-### int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
-头文件:    
-    #include <sys/types.h> /* See NOTES */   
-    #include <sys/socket.h>   
-功能：连接服务端    
-参数:    
-    sockdf: socket 文件描述符     
-    addr: 传入参数，指定服务器端地址信息，含 IP 地址和端口号    
-    addrlen: 传入参数,传入 sizeof(addr)大小    
-返回值：    
-    成功返回 0   
-    失败返回-1，设置 errno   
+> 参考代码[case_5.c](casr_5.c) / [相关API - SELECT](./socket_api.md)   
