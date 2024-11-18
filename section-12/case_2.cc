@@ -8,7 +8,7 @@ int main()
     std::cout << "input r " << std::endl;
     std::cin >> r;
 
-    std::cout << "area is " << PI * r * r;
+    std::cout << "area is " << PI * r * r << std::endl;
 
     return 0;
 }
