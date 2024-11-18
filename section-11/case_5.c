@@ -102,9 +102,9 @@ int main(int argc, char** argv)
 
                 FD_SET(cs, &oldset); // 将客户端放进oldset集合，下次监听
                 // 更新maxfd
-                if (ss > max_fd)
+                if (cs > max_fd)
                 {
-                    max_fd = ss;
+                    max_fd = cs;
                 }
                 // 如果只有ss有变化，则跳出循环，继续等待客户端
                 if (--n == 0)
