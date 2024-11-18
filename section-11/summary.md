@@ -3,17 +3,34 @@ Linux 网络编程
 
 Socket本身有“插座”的意思，在Linux环境下，用于表示进程间网络通信的特殊文件类型。本质为内核借助缓冲区形成的伪文件
 
-> 为使网络程序具有可移植性，使同样的C代码在大端和小端计算机上编译后都能正常运行，可以调用以下库函数做网络字节序和主机字节序的转换。
+## 字节序大小端转换
+为使网络程序具有可移植性，使同样的C代码在大端和小端计算机上编译后都能正常运行，可以调用以下库函数做网络字节序和主机字节序的转换。
+
 ```c
 #include <arpa/inet.h>
 
-uint32_t htonl(uint32_t hostlong);
-uint16_t htons(uint16_t hostshort);
-uint32_t ntohl(uint32_t netlong);
-uint16_t ntohs(uint16_t netshort);
+uint32_t htonl(uint32_t hostlong)
+其中,hostlong是主机字节顺序表达的32位数，htonl中的h–host主机地址，to–to,n–net网络，l–unsigned long无符号的长整型(32位的系统是4字节)；
+函数返回值是一个32位的网络字节顺序；
+函数的作用是将一个32位数从主机字节顺序转换成网络字节顺序。
+
+uint16_t htons(uint16_t hostlong)
+其中,hostlong是主机字节顺序表达的16位数，htons中的h–host主机地址，to–to,n–net网络，s–signed long无符号的短整型(32位的系统是2字节)；
+函数返回值是一个16位的网络字节顺序；
+函数的作用是将一个16位数从主机字节顺序转换成网络字节顺序，简单的说就是把一个16位数高低位呼唤。
+
+uint16_t ntohs(uint16_t hostlong)
+其中,hostlong是网络字节顺序表达的16位数，ntohs中的,n–net网络，to–toh–host主机地址，s–signed long有符号的短整型(32位的系统是2字节)；
+函数返回值是一个16位的主机字节顺序；
+函数的作用是将一个16位数由网络字节顺序转换为主机字节顺序，简单的说就是把一个16位数高低位互换。
+
+uint32_t ntohs(uint32_t hostlong)
+其中,hostlong是网络字节顺序表达的32位数，ntohs中的,n–net网络，to–toh–host主机地址，s–unsigned long无符号的短整型(32位的系统是4字节)；
+函数返回值是一个32位的主机字节顺序；
+函数的作用是将一个32位数由网络字节顺序转换为主机字节顺序。
 ```
 h表示host，n表示network，l表示32位长整数，s表示16位短整数。    
 
 如果主机是小端字节序，这些函数将参数做相应的大小端转换然后返回，如果主机是大端字节序，这些函数不做转换，将参数原封不动地返回。
-
+> 详见代码[case_1.c](case_1.c); [点分制ip转换子节序](case_2.c);
 
