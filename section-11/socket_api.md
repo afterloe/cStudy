@@ -215,7 +215,8 @@ if (bytes_sent < 0) {
 头文件:    
     #include <sys/types.h> /* See NOTES */   
     #include <sys/socket.h>   
-功能：连接服务端    
+功能：
+    连接服务端    
 参数:    
     sockdf: socket 文件描述符     
     addr: 传入参数，指定服务器端地址信息，含 IP 地址和端口号    
@@ -223,6 +224,27 @@ if (bytes_sent < 0) {
 返回值：    
     成功返回 0   
     失败返回-1，设置 errno   
+
+
+### int setsockopt(int sockFd, int level, int optname, const void *optval, socklen_t optlen)
+头文件:    
+    #include <sys/types.h>   
+    #include <sys/socket.h>   
+功能：
+    端口复用允许在一个应用程序可以把 n 个套接字绑在一个端口上而不出错   
+参数:    
+    sockfd：将要被设置或者获取选项的套接字。   
+    level：选项定义的层次；支持SOL_SOCKET、IPPROTO_TCP、IPPROTO_IP和IPPROTO_IPV6。一般设成SOL_SOCKET以存取socket层   
+        SOL_SOCKET:通用套接字选项.   
+        IPPROTO_IP:IP选项.IPv4套接口   
+        IPPROTO_TCP:TCP选项.   
+        IPPROTO_IPV6: IPv6套接口   
+    optname： 参考下图   
+    optval： 配置值
+    optlen： 配置长度sizeof
+
+optname选项
+![alt text](pic/image.png)
 
 
 ### int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)
@@ -279,7 +301,7 @@ void FD_ZERO(fd_set *set); // 初始化，把文件描述符集合里所有位�
         1.NULL，永远等下去   
         2.设置 timeval，等待固定时间   
         3.设置 timeval 里时间均为 0，检查描述字后立即返回，轮询   
-    sigmask:    
+    sigmask: 当前进程的阻塞信号集，其设置内容如下     
         1.信号集,指定屏蔽        
         2.NULL,不屏蔽    
 返回值：  
@@ -287,4 +309,55 @@ void FD_ZERO(fd_set *set); // 初始化，把文件描述符集合里所有位�
     超时 0   
     失败返回-1，设置 errno   
 
+struct timespec结构
+```c
+struct timespec {
+    time_t tv_sec;     //seconds
+    long    tv_nsec;    //nanoseconds
+};
+```
+
 其余操作同`SELECT`
+
+
+### int poll(struct pollfd *fds, nfds_t nfds, int timeout)
+头文件:    
+    #include <poll.h> /* According to earlier standards */      
+功能: 
+    多路复用I/O - POLL 模型    
+参数:    
+    fds: pollfd结构体   
+    nfds: 监控的文件描述符集里最大文件描述符   
+    timeout: 毫秒级等待    
+        -1：阻塞等，#define INFTIM -1   
+        0：立即返回，不阻塞进程    
+        >0：等待指定毫秒数，如当前系统时间精度不够毫秒，向上取值    
+返回值：  
+    成功返回 返回结构体中 revents 域不为 0 的文件描述符个数  
+    超时 0   
+    失败返回-1，设置 errno   
+        
+
+struct pollfd 结构体
+```c
+struct pollfd {
+    int fd;         /* 文件描述符 */
+    short events;   /* 监控的事件 */
+    short revents;  /* 监控事件中满足条件返回的事件，实际发生的事件 */
+}
+```
+读事件   
+**POLLIN** 普通或带外优先数据可读,即 POLLRDNORM | POLLRDBAND    
+POLLRDNORM 数据可读    
+POLLRDBAND 优先级带数据可读    
+POLLPRI 高优先级可读数据   
+
+写事件  
+**POLLOUT**普通或带外数据可写    
+POLLWRNORM数据可写    
+POLLWRBAND优先级带数据可写    
+
+异常事件    
+**POLLERR**发生错误    
+POLLHUP发生挂起    
+POLLNVAL描述字不是一个打开的文件    

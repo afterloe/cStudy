@@ -80,3 +80,13 @@ select 能监听的文件描述符个数受限于 FD_SETSIZE，一般为 1024，
 * select可以更新timeout参数以指示剩余的时间。pselect的timeout参数声明为const确保其不会更改此参数。
 * pselect可以选择使用的信号屏蔽字。若sigmask为空，那么在与信号有关的方面，pselect的运行状况和select相同。否则，sigmask指向一信号屏蔽字，在调用pselect时，以原子操作的方式安装该信号屏蔽字。在返回时恢复以前的信号屏蔽字。
 
+> [相关API - SELECT](./socket_api.md)   
+
+### POLL
+如果不再监控某个文件描述符时，可以把 pollfd 中，fd 设置为-1，poll 不再监控此 pollfd，下次返回时，把 revents
+设置为 0。   
+相较于 select 而言，poll 的优势：   
+1. 传入、传出事件分离。无需每次调用时，重新设定监听事件。  
+2. 没有最大文件描述符数量的限制, 能监控的最大上限数可使用配置文件调整, 但是数量过大后性能也是会下降。   
+
+> 参考代码[case_6.c](case_6.c) / [相关API - SELECT](./socket_api.md)   
