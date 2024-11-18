@@ -38,4 +38,4 @@ Socket本身有“插座”的意思，在Linux环境下，用于表示进程间
 select 能监听的文件描述符个数受限于 FD_SETSIZE，一般为 1024，单纯改变进程打开的文件描述符个数并不能改变 select 监听文件个数。
 1024 以下客户端时使用 select 是很合适的，但如果链接客户端过多，select 采用的是轮询模型，会大大降低服务器响应效率，不应在 select 上投入更多精力。
 
-> 参考代码[case_5.c](casr_5.c) / [相关API - SELECT](./socket_api.md)   
+> 参考代码[case_5.c](case_5.c) / [相关API - SELECT](./socket_api.md)   
