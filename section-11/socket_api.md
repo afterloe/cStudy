@@ -127,6 +127,28 @@ bind()的作用是将参数 sockfd 和 addr 绑定在一起，使 sockfd 这个�
     失败返回-1, 设置 errno        
 
 
+### ssize_t recv(int sockfd, void *buf, size_t len, int flags)
+头文件:    
+    #include <sys/types.h> /* See NOTES */   
+    #include <sys/socket.h>   
+功能：
+    系统调用，用于从套接字接收数据。不论是客户还是服务器应用程序都用recv函数从TCP连接的另一端接收数据   
+参数:    
+    sockfd：一个已打开的套接字的描述符    
+    buf：一个指针，指向用于存放接收到的数据的缓冲区   
+    len：缓冲区的大小（以字节为单位）   
+    flags：控制接收行为的标志。通常可以设置为0   
+        MSG_CMSG_CLOEXEC 
+        MSG_DONTWAIT	仅本操作非阻塞    
+        MSG_OOB	发送或接收带外数据   
+        MSG_PEEK	窥看外来消息    
+        MSG_WAITALL	等待所有数据    
+返回值：   
+    在成功的情况下，recvfrom() 返回接收到的字节数。   
+    如果没有数据可读或套接字已经关闭，那么返回值为0。   
+    出错时，返回 -1，并设置全局变量 errno 以指示错误类型。   
+
+
 ### ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *src_addr, socklen_t *addrlen)
 头文件:    
     #include <sys/types.h> /* See NOTES */   
@@ -161,6 +183,26 @@ if (bytes_received < 0) {
 }
 ```
 
+
+### ssize_t send(int sockfd, const void *buf, size_t len, int flags)
+头文件:    
+    #include <sys/types.h> /* See NOTES */   
+    #include <sys/socket.h>   
+功能：
+    系统调用，用于发送数据到一个指定文件描述符    
+参数:    
+    sockfd：一个已打开的套接字的描述符   
+    buf：一个指针，指向要发送的数据的缓冲区     
+    len：要发送的数据的大小（以字节为单位）     
+    flags：控制发送行为的标志。通常可以设置为0。一些可用的标志包括：    
+        MSG_DONTROUTE	绕过路由表查找   
+        MSG_DONTWAIT	仅本操作非阻塞   
+        MSG_OOB	发送或接收带外数据   
+返回值：    
+    成功时，sendto() 返回实际发送的字节数。     
+    出错时，返回 -1 并设置全局变量 errno 以指示错误类型。    
+
+
 ### ssize_t sendto(int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen)
 头文件:    
     #include <sys/types.h> /* See NOTES */   
@@ -179,7 +221,7 @@ if (bytes_received < 0) {
     addrlen：dest_addr 缓冲区的大小（以字节为单位）     
 返回值：    
     成功时，sendto() 返回实际发送的字节数。     
-    出错时，返回 -1 并设置全局变量 errno 以指示错误类型。    
+    出错时，返回 -1 并设置全局变量 errno 以指示错误类型。     
 
 ```c
 struct sockaddr_in receiver;

@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include <fcntl.h>
+
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -85,17 +87,26 @@ int main()
                         perror("accept :");
                         continue;
                     }
+                    
+                    // 设置cfd 为非阻塞, 避免边缘触发时， read一直阻塞读取。
+                    int model = fcntl(cfd, F_GETFL);
+                    model |= O_NONBLOCK;
+                    fcntl(cfd, F_SETFL, model);
+
                     char ip[32] = { 0 };
                     inet_ntop(AF_INET6, &cli.sin6_addr, ip, sizeof(ip));
                     printf("CLIENT[%s]:%d ACCEPT. \n", ip, ntohs(cli.sin6_port));
 
                     struct epoll_event node;
                     node.data.fd = cfd;
+                    // 设置 epoll 为 边缘触发 模式， 即 只触发一次。
+                    // 默认 水平触发， 即 只要有数据就一直循环
                     node.events = EPOLLIN | EPOLLET;
                     epoll_ctl(handle, EPOLL_CTL_ADD, cfd, &node);
                 }
                 else if ((list + idx)->events & EPOLLIN)
                 {
+                    // MSG_PEEK 表示读数据 不会删除缓冲区中的内容
                     int num = recv((list + idx)->data.fd, chunk, MAX_SIZE, MSG_CMSG_CLOEXEC);
                     if (num < 0)
                     {
@@ -112,6 +123,7 @@ int main()
                     else
                     {
                         write(STDOUT_FILENO, chunk, num);
+                        // send api, 0 表示一般速度， 1 表示紧急，一般设置0
                         send((list + idx)->data.fd, chunk, num, 0);
                     }
                 }
