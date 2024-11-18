@@ -90,3 +90,29 @@ select 能监听的文件描述符个数受限于 FD_SETSIZE，一般为 1024，
 2. 没有最大文件描述符数量的限制, 能监控的最大上限数可使用配置文件调整, 但是数量过大后性能也是会下降。   
 
 > 参考代码[case_6.c](case_6.c) / [相关API - SELECT](./socket_api.md)   
+
+### PPOLL
+GNU 定义了 ppoll（非 POSIX 标准），可以支持设置信号屏蔽字。    
+
+使用上同POLL，可选择使用信号屏蔽字。若sigmask为空，那么在与信号有关的方面，ppoll的运行状况和poll相同。否则，sigmask指向一信号屏蔽字，在调用ppoll时，以原子操作的方式安装该信号屏蔽字。在返回时恢复以前的信号屏蔽字。    
+
+> [相关API - SELECT](./socket_api.md)   
+
+### EPOLL
+epoll 是 Linux 下多路复用 IO 接口 select/poll 的增强版本，它能显著提高程序在大量并发连接中只有少量活跃的情况下的系统 CPU 利用率，因为它会复用文件描述符集合来传递结果而不用迫使开发者每次等待事件之前都必须重新准备要被侦听的文件描述符集合，另一点原因就是获取事件的时候，它无须遍历整个被侦听的描述符集，只要遍历那些被内核 IO 事件异步唤醒而加入 Ready 队列的描述符集合就行了。   
+
+目前 epoll 是 linux 大规模并发网络程序中的热门首选模型。epoll 除了提供 select/poll 那种 IO 事件的水平触发（Level Triggered）外，还提供了边沿触发（Edge Triggered），这就使得用户空间程序有可能缓存 IO 状态，减少 epoll_wait/epoll_pwait 的调用，提高应用程序效率。    
+
+
+可以使用 cat 命令查看一个进程可以打开的 socket 描述符上限 `cat /proc/sys/fs/file-max`
+
+修改方式
+```shell
+sudo vim /etc/security/limits.conf
+
+# 在文件尾部写入以下配置, soft 软限制，hard 硬限制。如下图所示。
+* soft nofile 65536
+* hard nofile 100000
+```
+
+> 参考代码[case_7.c](case_7.c) / [相关API - SELECT](./socket_api.md)   

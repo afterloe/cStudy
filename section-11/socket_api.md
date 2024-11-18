@@ -346,6 +346,7 @@ struct pollfd {
     short revents;  /* 监控事件中满足条件返回的事件，实际发生的事件 */
 }
 ```
+
 读事件   
 **POLLIN** 普通或带外优先数据可读,即 POLLRDNORM | POLLRDBAND    
 POLLRDNORM 数据可读    
@@ -361,3 +362,114 @@ POLLWRBAND优先级带数据可写
 **POLLERR**发生错误    
 POLLHUP发生挂起    
 POLLNVAL描述字不是一个打开的文件    
+
+
+### int ppoll(struct pollfd *fds, nfds_t nfds, const struct timespec *timeout_ts, const sigset_t *sigmask)
+头文件:    
+    #define _GNU_SOURCE /* See feature_test_macros(7) */
+    #include <poll.h> /* According to earlier standards */      
+功能: 
+    多路复用I/O - PPOLL 模型    
+参数:    
+    fds: pollfd结构体   
+    nfds: 监控的文件描述符集里最大文件描述符   
+    timeout： 定时阻塞监控时间，3 种情况   
+        1.NULL，永远等下去   
+        2.设置 timeval，等待固定时间   
+        3.设置 timeval 里时间均为 0，检查描述字后立即返回，轮询   
+    sigmask: 当前进程的阻塞信号集，其设置内容如下     
+        1.信号集,指定屏蔽        
+        2.NULL,不屏蔽     
+返回值：  
+    成功返回 返回结构体中 revents 域不为 0 的文件描述符个数  
+    超时 0   
+    失败返回-1，设置 errno   
+
+struct timespec结构
+```c
+struct timespec {
+    time_t tv_sec;     //seconds
+    long    tv_nsec;    //nanoseconds
+};
+```
+
+其他同 `POLL`
+
+
+### int epoll_create(int size)
+头文件:    
+    #include <sys/epoll.h> /* According to earlier standards */   
+功能: 
+    创建一个 epoll 句柄，参数 size 用来告诉内核监听的文件描述符的个数，跟内存大小有关     
+参数:    
+    size：监听数目（内核参考值）
+返回值：   
+    成功：非负文件描述符    
+    失败：-1，设置相应的 errno   
+
+
+### int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event)
+头文件:    
+    #include <sys/epoll.h> /* According to earlier standards */   
+功能: 
+    控制某个 epoll 监控的文件描述符上的事件：注册、修改、删除     
+参数:    
+    epfd：为 epoll_creat 的句柄   
+    op：表示动作，用 3 个宏来表示    
+        EPOLL_CTL_ADD (注册新的 fd 到 epfd)，    
+        EPOLL_CTL_MOD (修改已经注册的 fd 的监听事件)，    
+        EPOLL_CTL_DEL (从 epfd 删除一个 fd)；    
+    fd: 文件描述符
+    event： 告诉内核需要监听的事件    
+返回值：
+    成功：0    
+    失败：-1，设置相应的 errno    
+
+struct epoll_event 结构
+```c
+struct epoll_event {
+    __uint32_t events; /* Epoll events */
+    epoll_data_t data; /* User data variable */
+};
+typedef union epoll_data {
+    void *ptr;
+    int fd;
+    uint32_t u32;
+    uint64_t u64;
+} epoll_data_t;
+```
+
+events 事件宏列表
+
+读事件   
+EPOLLIN ：表示对应的文件描述符可以读（包括对端 SOCKET 正常关闭）   
+
+写事件   
+EPOLLOUT：表示对应的文件描述符可以写   
+EPOLLPRI：表示对应的文件描述符有紧急的数据可读（这里应该表示有带外数据到来）   
+
+异常事件    
+EPOLLERR：表示对应的文件描述符发生错误   
+EPOLLHUP：表示对应的文件描述符被挂断；   
+EPOLLET：将 EPOLL 设为边缘触发(Edge Triggered)模式，这是相对于水平触发(Level Triggered)而言的   
+EPOLLONESHOT：只监听一次事件，当监听完这次事件之后，如果还需要继续监听这个 socket 的话，需要再次把这个socket 加入到 EPOLL 队列里     
+
+
+### epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)
+头文件:    
+    #include <sys/epoll.h> /* According to earlier standards */   
+功能: 
+    等待所监控文件描述符上有事件的产生，类似于 select()调用     
+参数:    
+    events：用来存内核得到事件的集合，可简单看作数组。    
+    maxevents： 告之内核这个 events 有多大，这个 maxevents 的值不能大于创建 epoll_create()时的 size     
+    timeout：超时时间    
+        -1： 阻塞     
+        0： 立即返回，非阻塞     
+        >0： 指定毫秒    
+返回值：      
+    成功: 返回有多少文件描述符就绪    
+    时间到时返回 0   
+    出错返回-1    
+
+参考代码[case_7.c](case_7.c)
