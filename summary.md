@@ -55,8 +55,8 @@
     * 锁 / 条件变量 / 生产者消费者条件变量模型 / [相关API](section-10/mutex_api.md)
 * [section-11 Socket c](section-11/summary.md)
     * MAC / IP / Socket / TCP / UDP / [Socket API](section-11/socket_api.md)
-    * 多路IO / SELECT / POLL / EPOLL
-    * 反应堆线程池 / libevent
+    * 多路IO / SELECT / POLL / EPOLL  / 反应堆线程池 
+    * libevent
     * WebServer / HttpClient
     * WebRTC / FFmpeg
 * [section-12 Cpp](section-12/summary.md)
@@ -68,6 +68,7 @@
     * [makefile和make](other/make_usage.md)
     * [libevent 网络工具库](other/libevent_usage.md)
     * [socket模拟工具、内存泄漏检测工具](other/tools.md)
+    * [openssl工具的使用](other/openssl.md)
 
 
 ## C/C++ 小工程/项目

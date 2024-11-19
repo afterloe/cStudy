@@ -515,3 +515,48 @@ EPOLLONESHOT：只监听一次事件，当监听完这次事件之后，如果�
     出错返回-1    
 
 参考代码[case_7.c](case_7.c)
+
+
+### gethostbyname
+功能: 
+    根据给定的主机名，获取主机信息     
+
+
+### gethostbyaddr
+功能: 
+    此函数只能获取域名解析服务器的 url 和/etc/hosts 里登记的 IP 对应的域名     
+
+
+### getservbyname
+功能: 
+         
+
+
+### getservbyport
+功能: 
+         
+
+
+### getaddrinfo
+功能: 
+         
+
+
+### getnameinfo
+功能: 
+         
+
+
+### freeaddrinfo
+功能: 
+    可同时处理 IPv4 和 IPv6，线程安全的     
+
+
+### getsockname
+功能: 
+    根据 accpet 返回的 sockfd，得到临时端口号     
+
+
+### getpeername
+功能: 
+    根据 accpet 返回的 sockfd，得到远端链接的端口号，在 exec 后可以获取客户端信息     

@@ -11,3 +11,4 @@ out/
 **dist
 a.data
 cmake-build-debug/
+cmake-build-debug/*
