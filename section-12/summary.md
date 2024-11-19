@@ -162,3 +162,7 @@ cout << "捕获异常!" << endl;
 system("pause");
 ```
 > 参考代码[case_2.cc](case_2.cc)    
+
+## 文件
+### 文件读写
+[case_3.cc](case_3.cc)
