@@ -366,3 +366,122 @@ func 不想实现也可以用默认的宏 `SIG_DFL - 默认的信号处理程序
 返回值：    
     成功：0   
     失败：-1    
+
+
+### 信号集函数
+```c
+#include <signal.h>  
+​
+int sigemptyset(sigset_t *set);       //将set集合置空
+int sigfillset(sigset_t *set)；          //将所有信号加入set集合
+int sigaddset(sigset_t *set, int signo);  //将signo信号加入到set集合
+int sigdelset(sigset_t *set, int signo);   //从set集合中移除signo信号
+int sigismember(const sigset_t *set, int signo); //判断信号是否存在
+```
+> 参考代码[case_7.c](case_7.c)
+
+### int sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
+头文件：   
+    #include <signal.h>   
+功能：    
+    检查或修改信号阻塞集，根据 how 指定的方法对进程的阻塞集合进行修改，新的信号阻塞集由 set 指定，而原先的信号阻塞集合由 oldset 保存。   
+​
+参数：   
+    how : 信号阻塞集合的修改方法，有 3 种情况：   
+        SIG_BLOCK：向信号阻塞集合中添加 set 信号集，新的信号掩码是set和旧信号掩码的并集。相当于 mask = mask|set。   
+        SIG_UNBLOCK：从信号阻塞集合中删除 set 信号集，从当前信号掩码中去除 set 中的信号。相当于 mask = mask & ~ set。   
+        SIG_SETMASK：将信号阻塞集合设为 set 信号集，相当于原来信号阻塞集的内容清空，然后按照 set 中的信号重新设置信号阻塞集。相当于mask = set。   
+    set : 要操作的信号集地址。   
+        若 set 为 NULL，则不改变信号阻塞集合，函数只把当前信号阻塞集合保存到 oldset 中。   
+    oldset : 保存原先信号阻塞集地址  
+​
+返回值：   
+    成功：0，   
+    失败：-1，失败时错误代码只可能是 EINVAL，表示参数 how 不合法。    
+
+
+### int sigpending(sigset_t *set)
+头文件：   
+    #include <signal.h>   
+功能：    
+    读取当前进程的未决信号集   
+参数：   
+    set：未决信号集   
+返回值：   
+    成功：0   
+    失败：-1   
+
+
+### int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
+头文件：   
+    #include <signal.h>   
+​功能：    
+    检查或修改指定信号的设置（或同时执行这两种操作）。  
+​
+参数：  
+    signum：要操作的信号。   
+    act：   要设置的对信号的新处理方式（传入参数）。  
+    oldact：原来对信号的处理方式（传出参数）。  
+​
+    如果 act 指针非空，则要改变指定信号的处理方式（设置），如果 oldact 指针非空，则系统将此前指定信号的处理方式存入 oldact。  
+​
+返回值：  
+    成功：0   
+    失败：-1   
+
+struct sigaction结构体定义 
+```c
+struct sigaction {
+    void(*sa_handler)(int); //旧的信号处理函数指针
+    void(*sa_sigaction)(int, siginfo_t *, void *); //新的信号处理函数指针
+    sigset_t   sa_mask;      //信号阻塞集
+    int        sa_flags;     //信号处理的方式
+    void(*sa_restorer)(void); //已弃用
+};
+
+1) sa_handler、sa_sigaction：信号处理函数指针，和 signal() 里的函数指针用法一样，应根据情况给sa_sigaction、sa_handler 两者之一赋值，其取值如下：
+a) SIG_IGN：忽略该信号
+b) SIG_DFL：执行系统默认动作
+c) 处理函数名：自定义信号处理函数
+
+2) sa_mask：信号阻塞集，在信号处理函数执行过程中，临时屏蔽指定的信号。
+
+3) sa_flags：用于指定信号处理的行为，通常设置为0，表使用默认属性。它可以是一下值的“按位或”组合：
+Ø SA_RESTART：使被信号打断的系统调用自动重新发起（已经废弃）
+Ø SA_NOCLDSTOP：使父进程在它的子进程暂停或继续运行时不会收到 SIGCHLD 信号。
+Ø SA_NOCLDWAIT：使父进程在它的子进程退出时不会收到 SIGCHLD 信号，这时子进程如果退出也不会成为僵尸进程。
+Ø SA_NODEFER：使对信号的屏蔽无效，即在信号处理函数执行期间仍能发出这个信号。
+Ø SA_RESETHAND：信号处理之后重新设置为默认的处理方式。
+Ø SA_SIGINFO：使用 sa_sigaction 成员而不是 sa_handler 作为信号处理函数。
+
+/**
+ * 信号处理函数:
+ */
+void(*sa_sigaction)(int signum, siginfo_t *info, void *context);
+参数说明：
+    signum：信号的编号。
+    info：记录信号发送进程信息的结构体。
+    context：可以赋给指向 ucontext_t 类型的一个对象的指针，以引用在传递信号时被中断的接收进程或线程的上下文。
+```
+
+
+### int sigqueue(pid_t pid, int sig, const union sigval value)
+头文件：   
+    #include <signal.h>   
+​功能：    
+    给指定进程发送信号。
+参数：
+    pid : 进程号。   
+    sig : 信号的编号。  
+    value : 通过信号传递的参数。   
+```c
+// union sigval 类型如下：
+union sigval
+{
+    int   sival_int;
+    void *sival_ptr;
+};
+```   
+返回值：   
+    成功：0   
+    失败：-1  
