@@ -20,7 +20,7 @@ int main()
         exit(EXIT_FAILURE);
     }
 
-    unlink(filepath);
+    unlink(filepath); // 删除存在的文件，确保安全
     
     memset(&un, 0, sizeof(un));
     un.sun_family = AF_UNIX;
