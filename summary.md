@@ -54,13 +54,12 @@
     * 守护进程 / 线程 / [线程池相关API](section-10/thread_pool_api.md)
     * 锁 / 条件变量 / 生产者消费者条件变量模型 / [相关API](section-10/mutex_api.md)
 * [section-11 Socket c](section-11/summary.md)
-    * MAC / IP / Socket / TCP / UDP
-    * 多路IO / SELECT / POLL / EPOLL
-    * 反应堆线程池 / libevent
-    * WebServer / HttpClient
-    * WebRTC / FFmpeg
+    * MAC / IP / Socket / TCP / UDP / [Socket API](section-11/socket_api.md)
+    * 多路IO / SELECT / POLL / EPOLL  / 反应堆线程池 
+    * [libevent](section-11/case_12_libevent)
 * [section-12 Cpp](section-12/summary.md)
     * 基础语法
+
 
 * 备忘录
     * [C/C++注释](other/explanatory_note.md)
@@ -68,6 +67,7 @@
     * [makefile和make](other/make_usage.md)
     * [libevent 网络工具库](other/libevent_usage.md)
     * [socket模拟工具、内存泄漏检测工具](other/tools.md)
+    * [openssl工具的使用](other/openssl.md)
 
 
 ## C/C++ 小工程/项目
@@ -76,3 +76,6 @@
 * [练习：命令行下的贪吃蛇](practice/example-03/summary.md)
 * [练习：读取配置文件，配置文件加解密](practice/example-04/summary.md)
 * [练习：文件的加解密](practice/example-05/summary.md)
+* WebServer / HttpClient
+* WebRTC / FFmpeg
+
