@@ -58,3 +58,7 @@ private:
 };
 ```
 > 参考代码[../section-05/case_1.cc](../section-05/case_1.cc)
+
+## 接口
+使用`virtual`关键字实现,接口类只是一个功能声明，并不是功能实现，子类需要根据功能说明定义功能实现。 注意:除了析构函数外，其他声明都是纯虚函数。   
+> 参考[../section-09/game.hpp](../section-09/game.hpp) 和 [../section-09/game.cc](../section-09/game.cc)
