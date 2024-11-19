@@ -68,6 +68,21 @@ setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &n, sizeof(n));
 ```
 
 
+### socket ipc / domain / uds
+IPC 机制，就是 UNIX Domain Socket (uds), 用于同一台主机的进程间通讯（通过 loopback 地址 127.0.0.1）
+，但是 UNIX Domain Socket 用于IPC 更有效率：不需要经过网络协议栈，不需要打包拆包、计算校验和、维护序号和应答等，只是将应用层数据从一个进程拷贝到另一个进程。     
+
+UNIX Domain Socket 也提供面向流和面向数据包两种 API 接口，类似于 TCP 和 UDP，但是面向消息的 UNIX Domain Socket 也是可靠的，消息既不会丢失也不会顺序错乱。    
+
+UNIX Domain Socket 与网络 socket 编程最明显的不同在于地址格式不同，用结构体 sockaddr_un 表示，网络编程的 socket 地址是 IP 地址加端口号，而 UNIX Domain Socket 的地址是一个 socket 类型的文件在文件系统中路径，这个 socket 文件由 bind()调用创建，如果调用 bind()时该文件已存在，则 bind()错误返回。
+
+代码参考:
+[IPV6 TCP Server](case_10.c) / [IPV6 TCP Client](case_11.c)       
+
+测试工具`curl -v  --unix-socket /tmp/nginx-status-server.sock http://nginx_status /`
+> eg: IPV6 `telnet ::1 9200` 或 IPV4 `telnet 0.0.0.0 9291`
+
+
 ## 高并发服务器
 
 使用多进程并发服务器时要考虑以下几点：
