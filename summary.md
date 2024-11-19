@@ -58,7 +58,9 @@
     * 多路IO / SELECT / POLL / EPOLL  / 反应堆线程池 
     * [libevent](section-11/case_12_libevent)
 * [section-12 Cpp](section-12/summary.md)
-    * 基础语法
+    * 基础语法 / 接口  
+    * 泛型 / 继承 / 友元
+    * 运算符重载 / 异常
 
 
 * 备忘录
