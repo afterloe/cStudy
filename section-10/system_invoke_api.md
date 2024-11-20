@@ -356,7 +356,7 @@ fcntl函数有5种功能：
 头文件       
     #include <sys/types.h>   
     #include <dirent.h>    
-​功能：打开一个目录
+​功能：打开一个目录/文件夹
 参数：
     name：目录名
 返回值：

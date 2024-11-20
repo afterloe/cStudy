@@ -82,6 +82,7 @@ C/CPP 练习与复习
 * [练习：命令行下的贪吃蛇](practice/example-03/summary.md)
 * [练习：读取配置文件，配置文件加解密](practice/example-04/summary.md)
 * [练习：文件的加解密](practice/example-05/summary.md)
+* [练习: 读取文件夹下所有的文件](practice/example-06/summary.md)
 * WebServer / HttpClient
 * WebRTC / FFmpeg
 
