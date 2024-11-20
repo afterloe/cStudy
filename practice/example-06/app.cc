@@ -1,20 +1,26 @@
 #include <iostream>
 
 #include <unistd.h>
-#include <cstring>
 #include <dirent.h>
 
 using namespace std;
+
+const string IGNORE_SUFFIX_FLAC = ".lrc";
+
+
 
 
 class MusicBiTNode {
 public:
     string filepath;
     string filename;
+    string suffix;
+    string author;
+
     MusicBiTNode *lchild;
     MusicBiTNode *rchild;
 
-    explicit MusicBiTNode(string filepath);
+    explicit MusicBiTNode(string filepath, const string& filename);
 
     ~MusicBiTNode();
 };
@@ -26,18 +32,24 @@ class MusicBSTree {
 
 public:
 
-    bool InsertBST(const string& filepath);
+    bool InsertBST(const string& filepath, const string& filename);
 
     MusicBSTree() {
-        root = NULL;
+        root = nullptr;
         size = 0;
     };
 
     ~MusicBSTree();
 };
 
-MusicBiTNode::MusicBiTNode(string filepath): lchild(nullptr), rchild(nullptr) {
+MusicBiTNode::MusicBiTNode(string filepath, const string& filename): lchild(nullptr), rchild(nullptr) {
     this->filepath = std::move(filepath);
+    string::size_type lastFlag = filename.find_last_of('.');
+    this->suffix = filename.substr(lastFlag + 1);
+    this->filename = filename.substr(0, lastFlag);
+    lastFlag = this->filename.find_last_of('-');
+    this->author = this->filename.substr(0, lastFlag);
+    this->filename = this->filename.substr(lastFlag + 1);
 }
 
 MusicBiTNode::~MusicBiTNode() {
@@ -52,26 +64,29 @@ MusicBSTree::~MusicBSTree() {
 }
 
 
-static bool SearchBST(MusicBiTNode *curtent, const string& filepath, MusicBiTNode *node, MusicBiTNode **result){
-    if (curtent == nullptr) {
+static bool SearchBST(MusicBiTNode *current, const string& filepath, MusicBiTNode *node, MusicBiTNode **result){
+    if (current == nullptr) {
         *result = node;
         return false;
     }
-    if (filepath == curtent->filepath) {
-        *result = curtent;
+    if (filepath == current->filepath) {
+        *result = current;
         // 查询成功
         return true;
     }
-    if (filepath < curtent->filepath) {
-        return SearchBST(curtent->lchild, filepath, curtent, result);
+    if (filepath < current->filepath) {
+        return SearchBST(current->lchild, filepath, current, result);
     }
-    return SearchBST(curtent->rchild, filepath, curtent, result);
+    return SearchBST(current->rchild, filepath, current, result);
 }
 
-bool MusicBSTree::InsertBST(const string& filepath) {
+bool MusicBSTree::InsertBST(const string& filepath, const string& filename) {
+    if (filename.find(IGNORE_SUFFIX_FLAC) != string::npos) {
+        return false;
+    }
     MusicBiTNode *ptr = nullptr;
     if (!SearchBST(this->root, filepath, nullptr, &ptr)) {
-        auto *node = new MusicBiTNode(filepath);
+        auto *node = new MusicBiTNode(filepath, filename);
         if (ptr == nullptr) {
             this->root = node;
         }else if (filepath < ptr->filepath) {
@@ -93,18 +108,18 @@ void readDir(const string &dirPath, MusicBSTree &tree) {
         perror("opendir");
         throw runtime_error("opendir");
     }
-    dirent *ptr = nullptr;
-    char newpath[PATH_MAX] = {0};
+    const dirent *ptr = nullptr;
     while ((ptr = readdir(dir)) != nullptr) {
-        if (strcmp(ptr->d_name, ".") == 0 || strcmp(ptr->d_name, "..") == 0) {
+        string d_name = ptr->d_name;
+        string filepath = dirPath + "/" + d_name;
+        if (d_name == "." || d_name == "..") {
             continue;
         }
         if (ptr->d_type == DT_DIR) {
-            sprintf(newpath, "%s/%s", dirPath.c_str(), ptr->d_name);
-            readDir(newpath, tree);
+            readDir(filepath, tree);
         }
         if (ptr->d_type == DT_REG) {
-            tree.InsertBST(dirPath + "/" + ptr->d_name);
+            tree.InsertBST(filepath, d_name);
         }
     }
     closedir(dir);
@@ -115,10 +130,13 @@ int main(int argc, const char **argv) {
     //     cerr << "Usage: ./app <path_to_file>" << endl;
     //     exit(EXIT_FAILURE);
     // }
+
     auto* musicBSTree = new MusicBSTree();
     const string dirpath = "/home/afterloe/音乐";
     cout << "load folder : " << dirpath << endl;
     readDir(dirpath, *musicBSTree);
     delete musicBSTree;
+
+
     return EXIT_SUCCESS;
 }
