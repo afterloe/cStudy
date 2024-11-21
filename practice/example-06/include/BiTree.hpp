@@ -4,6 +4,8 @@
 #ifndef BITREE_H
 #define BITREE_H
 
+#include <functional>
+
 #include "Music.hpp"
 
 namespace BiTree {
@@ -25,18 +27,20 @@ namespace BiTree {
 
         bool Contain(Node *current, Music *data, Node *find, Node **result);
 
-        void DLR(const Node *current, void callback(Music &data));
+        void DLR(const Node *current, std::function<void(Music *)> callback);
 
-        void LDR(const Node *current, void callback(Music &data));
+        void LDR(const Node *current, std::function<void(Music *)> callback);
 
-        void LRD(const Node *current, void callback(Music &data));
+        void LRD(const Node *current, std::function<void(Music *)> callback);
 
     public:
+        int getSize() const;
+
         bool Contain(Music *data, Node **result);
 
         bool Insert(Music *data);
 
-        void Traverse(void (*callback)(Music *));
+        void Traverse(std::function<void(Music *)> callback);
 
         explicit Tree();
 

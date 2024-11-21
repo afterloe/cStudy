@@ -21,6 +21,9 @@ Tree::Tree(): root() {
     size = 0;
 }
 
+int Tree::getSize() const {
+    return size;
+}
 
 Tree::~Tree() = default;
 
@@ -32,31 +35,31 @@ bool Tree::Contain(Music *data, Node **result) {
     return Contain(nullptr, data, this->root, result);
 }
 
-void Tree::LDR(const Node *current, void callback(Music& data)) {
+void Tree::LDR(const Node *current, std::function<void(Music *)> callback) {
     if (current == nullptr) {
         return;
     }
     LDR(current->left, callback);
-    callback(*current->data);
+    callback(current->data);
     LDR(current->right, callback);
 }
 
-void Tree::DLR(const Node *current, void callback(Music& data)) {
+void Tree::DLR(const Node *current, std::function<void(Music *)> callback) {
     if (current == nullptr) {
         return;
     }
-    callback(*current->data);
+    callback(current->data);
     DLR(current->left, callback);
     DLR(current->right, callback);
 }
 
-void Tree::LRD(const Node *current, void callback(Music& data)) {
+void Tree::LRD(const Node *current, std::function<void(Music *)> callback) {
     if (current == nullptr) {
         return;
     }
     LRD(current->left, callback);
     LRD(current->right, callback);
-    callback(*current->data);
+    callback(current->data);
 }
 
 bool Tree::Contain(Node *current, Music *data, Node *find, Node **result) {
@@ -103,15 +106,13 @@ bool Tree::Insert(Music *data) {
     return false;
 }
 
-void Tree::Traverse(void (*callback)(Music *)) {
-    if (nullptr != callback) {
+void Tree::Traverse(std::function<void(Music *)> callback) {
+    if (nullptr == callback) {
         return;
     }
     if (nullptr == this->root || 0 == this->size) {
         throw std::runtime_error("Tree is empty");
     }
-    this->DLR(this->root, [](Music &data) {
-        printf("%s \n", data.getFilepath().c_str());
-    });
+    this->LDR(this->root, callback);
 }
 

@@ -49,3 +49,9 @@ ostream &operator<<(ostream &os, const Music *m) {
     os << " ,filepath: " + m->filepath + "]" << endl;
     return os;
 }
+
+ostream &operator<<(ostream &os, const Music &m) {
+    os << "[name: " << m.filename << " ,author: " << m.author;
+    os << " ,filepath: " + m.filepath + "]" << endl;
+    return os;
+}

@@ -36,12 +36,22 @@ int main(int argc, const char **argv) {
     //     cerr << "Usage: ./app <path_to_file>" << endl;
     //     exit(EXIT_FAILURE);
     // }
-
     auto *tree = new BiTree::Tree();
     const string dirpath = "/home/afterloe/音乐";
     cout << "load folder : " << dirpath << endl;
     readDir(dirpath, *tree);
-    tree->Traverse(nullptr);
+
+    auto *result = new BiTree::Tree();
+    tree->Traverse([&](Music *music)->void {
+        if (music->getFilepath().find("麦芽糖") != string::npos) {
+            result->Insert(music);
+        }
+    });
+    cout << result->getSize() << endl;
+    result->Traverse([](Music *music)->void {
+        cout << music << endl;
+    });
+    delete result;
     delete tree;
 
     return EXIT_SUCCESS;

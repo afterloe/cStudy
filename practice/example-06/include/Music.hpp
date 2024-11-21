@@ -17,6 +17,8 @@ class Music {
 
     friend ostream &operator<<(ostream &os, const Music *m);
 
+    friend ostream &operator<<(ostream &os, const Music &m);
+
 public:
     Music(string filepath, const string &filename);
 
