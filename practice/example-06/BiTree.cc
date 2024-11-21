@@ -106,13 +106,22 @@ bool Tree::Insert(Music *data) {
     return false;
 }
 
-void Tree::Traverse(std::function<void(Music *)> callback) {
+void Tree::Traverse(std::function<void(Music *)> callback, int opt) {
     if (nullptr == callback) {
         return;
     }
     if (nullptr == this->root || 0 == this->size) {
         throw std::runtime_error("Tree is empty");
     }
-    this->LDR(this->root, callback);
+    switch (opt) {
+        case 1:
+            this->LDR(this->root, callback);
+            break;
+        case 2:
+            this->LRD(this->root, callback);
+            break;
+        case 0:
+        default:
+            this->LDR(this->root, callback);
+    }
 }
-

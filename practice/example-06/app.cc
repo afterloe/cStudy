@@ -43,7 +43,7 @@ int main(int argc, const char **argv) {
 
     auto *result = new BiTree::Tree();
     tree->Traverse([&](Music *music)->void {
-        if (music->getFilepath().find("麦芽糖") != string::npos) {
+        if (music->getFilepath().find("我") != string::npos) {
             result->Insert(music);
         }
     });
@@ -51,6 +51,7 @@ int main(int argc, const char **argv) {
     result->Traverse([](Music *music)->void {
         cout << music << endl;
     });
+
     delete result;
     delete tree;
 

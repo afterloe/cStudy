@@ -34,13 +34,13 @@ namespace BiTree {
         void LRD(const Node *current, std::function<void(Music *)> callback);
 
     public:
-        int getSize() const;
+        [[nodiscard]] int getSize() const;
 
         bool Contain(Music *data, Node **result);
 
         bool Insert(Music *data);
 
-        void Traverse(std::function<void(Music *)> callback);
+        void Traverse(std::function<void(Music *)> callback, int opt = 0);
 
         explicit Tree();
 
