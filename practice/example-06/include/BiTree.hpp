@@ -40,7 +40,7 @@ namespace BiTree {
 
         bool Insert(Music *data);
 
-        void Traverse(const std::function<void(Music *)>& callback, int opt = 0);
+        void Traverse(const std::function<void(Music *)>& callback, int opt = 0) noexcept(false);
 
         explicit Tree();
 

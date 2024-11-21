@@ -106,7 +106,7 @@ bool Tree::Insert(Music *data) {
     return false;
 }
 
-void Tree::Traverse(const std::function<void(Music *)>& callback, int opt) throw(std::exception) {
+void Tree::Traverse(const std::function<void(Music *)>& callback, const int opt) noexcept(false) {
     if (nullptr == callback) {
         return;
     }
