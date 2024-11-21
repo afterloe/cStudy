@@ -10,7 +10,9 @@ endif()
 
 include_directories(${NAME} ./include)
 
-add_executable (MusicBox app.cc)
+add_executable (MusicBox app.cc
+        Music.cc
+        BiTree.cc)
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
     set_property(TARGET ${NAME} PROPERTY CXX_STANDARD 20)

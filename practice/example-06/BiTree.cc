@@ -2,69 +2,72 @@
 
 using namespace BiTree;
 
-template Node<int>;
-template Tree<int>;
+const string IGNORE_SUFFIX_FLAC = ".lrc";
 
-template<typename T>
-Node<T>::Node(const T &data): data(data), left(), right() {
+Node::Node(Music *data): data(), left(), right() {
     this->data = data;
 }
 
-template<typename T>
-Node<T>::~Node() {
+
+Node::~Node() {
     delete this->data;
-    this->data = nullptr;
+    delete this->left;
+    delete this->right;
 }
 
-template<typename T>
-Tree<T>::Tree(): root() {
+
+Tree::Tree(): root() {
+    delete this->root;
     size = 0;
 }
 
-template<typename T>
-Tree<T>::~Tree() = default;
 
-template<typename T>
-bool Tree<T>::Contain(T &data, Node<T> &result) {
+Tree::~Tree() = default;
+
+
+bool Tree::Contain(Music *data, Node **result) {
     if (this->size == 0) {
         return false;
     }
     return Contain(nullptr, data, this->root, result);
 }
 
-template<typename T>
-bool Tree<T>::Contain(Node<T> &current, T &data, Node<T> &find, Node<T> &result) {
+
+bool Tree::Contain(Node *current, Music *data, Node *find, Node **result) {
     if (current == nullptr) {
         // 查询失败
-        result = find;
+        *result = find;
         return false;
     }
-    if (data == current->data) {
+    if (*data == *current->data) {
         // 查询成功
-        result = current;
+        *result = current;
         return true;
     }
-    if (data < current->data) {
-        return Contain(current.left, data, current, result);
+    if (*data < *current->data) {
+        return Contain(current->left, data, current, result);
     }
-    return Contain(current.right, data, current, result);
+    return Contain(current->right, data, current, result);
 }
 
-template<typename T>
-bool Tree<T>::Insert(T data) {
+
+bool Tree::Insert(Music *data) {
+    if (data->getFilepath().find(IGNORE_SUFFIX_FLAC) != string::npos) {
+        return false;
+    }
+
     if (this->size == 0) {
-        this->root = new Node<T>(data);
+        this->root = new Node(data);
         this->size = 1;
         return true;
     }
 
-    Node<T> *ptr = nullptr;
+    Node *ptr = nullptr;
     if (!Contain(this->root, data, nullptr, &ptr)) {
-        auto node = new Node<T>(data);
-        if (data < ptr->data) {
+        const auto node = new Node(data);
+        if (*data < *ptr->data) {
             ptr->left = node;
-        }
-        else {
+        } else {
             ptr->right = node;
         }
         ++this->size;

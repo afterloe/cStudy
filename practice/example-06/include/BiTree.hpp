@@ -4,29 +4,32 @@
 #ifndef BITREE_H
 #define BITREE_H
 
+#include "Music.hpp"
+
 namespace BiTree {
-    template<typename T>
+
     class Node {
-        T &data;
-        Node &left;
-        Node &right;
+    public:
+        Music *data;
+        Node *left;
+        Node *right;
 
     public:
-        explicit Node(const T &data);
+        explicit Node(Music *data);
 
         ~Node();
     };
 
-    template<typename T>
+
     class Tree {
-        Tree &root;
+        Node *root;
         int size;
 
-        bool Contain(Node<T> &current, T &data, Node<T> &find, Node<T> &result);
+        bool Contain(Node *current, Music *data, Node *find, Node **result);
     public:
-        bool Contain(T &data, Node<T> &result);
+        bool Contain(Music *data, Node **result);
 
-        bool Insert(T data);
+        bool Insert(Music *data);
 
         explicit Tree();
 
