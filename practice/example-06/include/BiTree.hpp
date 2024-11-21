@@ -27,11 +27,11 @@ namespace BiTree {
 
         bool Contain(Node *current, Music *data, Node *find, Node **result);
 
-        void DLR(const Node *current, std::function<void(Music *)> callback);
+        void DLR(const Node *current, const std::function<void(Music *)>& callback);
 
-        void LDR(const Node *current, std::function<void(Music *)> callback);
+        void LDR(const Node *current, const std::function<void(Music *)>& callback);
 
-        void LRD(const Node *current, std::function<void(Music *)> callback);
+        void LRD(const Node *current, const std::function<void(Music *)>& callback);
 
     public:
         [[nodiscard]] int getSize() const;
@@ -40,7 +40,7 @@ namespace BiTree {
 
         bool Insert(Music *data);
 
-        void Traverse(std::function<void(Music *)> callback, int opt = 0);
+        void Traverse(const std::function<void(Music *)>& callback, int opt = 0);
 
         explicit Tree();
 

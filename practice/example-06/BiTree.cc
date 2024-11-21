@@ -35,7 +35,7 @@ bool Tree::Contain(Music *data, Node **result) {
     return Contain(nullptr, data, this->root, result);
 }
 
-void Tree::LDR(const Node *current, std::function<void(Music *)> callback) {
+void Tree::LDR(const Node *current, const std::function<void(Music *)>& callback) {
     if (current == nullptr) {
         return;
     }
@@ -44,7 +44,7 @@ void Tree::LDR(const Node *current, std::function<void(Music *)> callback) {
     LDR(current->right, callback);
 }
 
-void Tree::DLR(const Node *current, std::function<void(Music *)> callback) {
+void Tree::DLR(const Node *current, const std::function<void(Music *)>& callback) {
     if (current == nullptr) {
         return;
     }
@@ -53,7 +53,7 @@ void Tree::DLR(const Node *current, std::function<void(Music *)> callback) {
     DLR(current->right, callback);
 }
 
-void Tree::LRD(const Node *current, std::function<void(Music *)> callback) {
+void Tree::LRD(const Node *current, const std::function<void(Music *)>& callback) {
     if (current == nullptr) {
         return;
     }
@@ -106,7 +106,7 @@ bool Tree::Insert(Music *data) {
     return false;
 }
 
-void Tree::Traverse(std::function<void(Music *)> callback, int opt) {
+void Tree::Traverse(const std::function<void(Music *)>& callback, int opt) throw(std::exception) {
     if (nullptr == callback) {
         return;
     }
