@@ -15,7 +15,7 @@ class Music {
     string suffix;
     string author;
 
-    // friend ostream& operator<<(ostream& os, const Music& m);
+    friend ostream &operator<<(ostream &os, const Music *m);
 
 public:
     Music(string filepath, const string &filename);
@@ -24,27 +24,17 @@ public:
 
     string getFilepath();
 
-    // bool operator>(const Music& m);
-    // bool operator<(const Music& m);
-    // bool operator== (const Music& m);
+    string getFilename();
 
-    bool operator<(const Music &m) const {
-        return this->filepath < m.filepath;
-    }
+    string getSuffix();
 
-    bool operator>(const Music &m) const {
-        return this->filepath > m.filepath;
-    }
+    string getAuthor();
 
-    bool operator==(const Music &m) const {
-        return this->filepath == m.filepath;
-    }
+    bool operator>(const Music &m) const;
 
-    friend ostream &operator<<(ostream &os, const Music *m) {
-        os << "[name: " << m->filename << " ,author: " << m->author;
-        os << " ,filepath: " + m->filepath + "]" << endl;
-        return os;
-    }
+    bool operator<(const Music &m) const;
+
+    bool operator==(const Music &m) const;
 };
 
 #endif //MUSIC_HPP

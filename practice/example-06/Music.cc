@@ -8,6 +8,18 @@ string Music::getFilepath() {
     return filepath;
 }
 
+string Music::getFilename() {
+    return filename;
+}
+
+string Music::getSuffix() {
+    return suffix;
+}
+
+string Music::getAuthor() {
+    return author;
+}
+
 Music::Music(string filepath, const string &filename) {
     this->filepath = std::move(filepath);
     string::size_type lastFlag = filename.find_last_of('.');
@@ -19,3 +31,21 @@ Music::Music(string filepath, const string &filename) {
 }
 
 Music::~Music() = default;
+
+bool Music::operator<(const Music &m) const {
+    return this->filepath < m.filepath;
+}
+
+bool Music::operator>(const Music &m) const {
+    return this->filepath > m.filepath;
+}
+
+bool Music::operator==(const Music &m) const {
+    return this->filepath == m.filepath;
+}
+
+ostream &operator<<(ostream &os, const Music *m) {
+    os << "[name: " << m->filename << " ,author: " << m->author;
+    os << " ,filepath: " + m->filepath + "]" << endl;
+    return os;
+}

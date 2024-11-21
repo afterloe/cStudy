@@ -7,14 +7,12 @@
 #include "Music.hpp"
 
 namespace BiTree {
-
     class Node {
     public:
         Music *data;
         Node *left;
         Node *right;
 
-    public:
         explicit Node(Music *data);
 
         ~Node();
@@ -26,10 +24,19 @@ namespace BiTree {
         int size;
 
         bool Contain(Node *current, Music *data, Node *find, Node **result);
+
+        void DLR(const Node *current, void callback(Music &data));
+
+        void LDR(const Node *current, void callback(Music &data));
+
+        void LRD(const Node *current, void callback(Music &data));
+
     public:
         bool Contain(Music *data, Node **result);
 
         bool Insert(Music *data);
+
+        void Traverse(void (*callback)(Music *));
 
         explicit Tree();
 
