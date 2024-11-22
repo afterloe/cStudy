@@ -5,12 +5,14 @@
 #include <libavformat/avformat.h>
 #include <libavutil/dict.h>
 
-int main()
+int main(int argv, char ** args)
 {
     AVFormatContext* ctx = NULL;
     int ret;
 
-    ret = avformat_open_input(&ctx, "/home/afterloe/音乐/周杰伦-青花瓷.flac", NULL, NULL);
+    const char* input_file = args[1];
+
+    ret = avformat_open_input(&ctx, input_file, NULL, NULL);
     if (ret != 0)
     {
         printf("can't open file");
@@ -22,7 +24,10 @@ int main()
     {
         printf("%s=%s\n", metadata->key, metadata->value);
     }
-    
+
+    printf("============== \n");
+    av_dump_format(ctx, 0, input_file, 0); 
+    printf("============== \n");
 
     ret = avformat_find_stream_info(ctx, NULL);
     if (ret != 0)

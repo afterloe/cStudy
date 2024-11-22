@@ -28,10 +28,9 @@ int main(int argc, char** args)
     printf("Duration: %lld seconds\n", ctx->duration / AV_TIME_BASE);
 
     // 输出源信息
-    AVDictionaryEntry* metadata = NULL;
-    while ((metadata = av_dict_get(ctx->metadata, "", metadata, AV_DICT_IGNORE_SUFFIX)))
+    while ((dictionary = av_dict_get(ctx->metadata, "", dictionary, AV_DICT_IGNORE_SUFFIX)))
     {
-        printf("%s=%s\n", metadata->key, metadata->value);
+        printf("%s=%s\n", dictionary->key, dictionary->value);
     }
 
     for (int i = 0; i < ctx->nb_streams; i++)
