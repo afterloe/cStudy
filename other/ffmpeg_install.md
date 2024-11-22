@@ -88,8 +88,8 @@ cd FFmpeg
   --enable-libfreetype \
   --enable-libmp3lame \
   --enable-libopus \
-  --disable-libsvtav1 \
-  --disable-libdav1d \
+  --enable-libsvtav1 \
+  --enable-libdav1d \
   --enable-libvorbis \
   --enable-libvpx \
   --enable-libx264 \
