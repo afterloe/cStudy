@@ -10,8 +10,9 @@ endif()
 
 include_directories(
         ${PROJECT_NAME} ./include
-
 )
+
+link_directories(/usr/lib/x86_64-linux-gnu)
 
 add_executable (MusicBox app.cc
         Music.cc

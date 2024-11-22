@@ -2,6 +2,9 @@
 
 #include <unistd.h>
 #include <sys/types.h>
+
+#include <alsa/asoundlib.h>
+
 #include <dirent.h>
 #include "include/Music.hpp"
 #include "include/BiTree.hpp"
@@ -55,6 +58,8 @@ int main(int argc, const char **argv) {
     //
     // delete result;
     // delete tree;
+
+    cout <<"ALSA library version: " << SND_LIB_VERSION_STR << endl;
 
     return EXIT_SUCCESS;
 }

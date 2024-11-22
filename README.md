@@ -74,6 +74,7 @@ C/CPP 练习与复习
     * [libevent 网络工具库](other/libevent_usage.md)
     * [socket模拟工具、内存泄漏检测工具](other/tools.md)
     * [openssl工具的使用](other/openssl.md)
+    * [sdl2 ffmpeg的编译](other/ffmpeg_install.md)
 
 
 ## C/C++ 小工程/项目
