@@ -3,11 +3,13 @@
 #include <unistd.h>
 #include <sys/types.h>
 
-#include <alsa/asoundlib.h>
-
 #include <dirent.h>
 #include "include/Music.hpp"
 #include "include/BiTree.hpp"
+
+extern "C" {
+#include <libavcodec/avcodec.h>
+}
 
 using namespace std;
 
@@ -59,7 +61,12 @@ int main(int argc, const char **argv) {
     // delete result;
     // delete tree;
 
-    cout <<"ALSA library version: " << SND_LIB_VERSION_STR << endl;
+    cout << "Hello, FFmpeg " << endl;
+
+    string config = avcodec_configuration();
+    cout << "config: " << config << endl;
+    string license = avcodec_license();
+    cout << "license: " << license << endl;
 
     return EXIT_SUCCESS;
 }
