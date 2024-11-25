@@ -10,12 +10,12 @@
 #define AUDIO_INBUF_SIZE 20480
 #define AUDIO_REFILL_THRESH 4096
 
-static int get_format_from_sample_fmt(const char **fmt,
-                                      enum AVSampleFormat sample_fmt)
+static int get_format_from_sample_fmt(const char** fmt,
+    enum AVSampleFormat sample_fmt)
 {
     int i;
     struct sample_fmt_entry {
-        enum AVSampleFormat sample_fmt; const char *fmt_be, *fmt_le;
+        enum AVSampleFormat sample_fmt; const char* fmt_be, * fmt_le;
     } sample_fmt_entries[] = {
         { AV_SAMPLE_FMT_U8,  "u8",    "u8"    },
         { AV_SAMPLE_FMT_S16, "s16be", "s16le" },
@@ -26,7 +26,7 @@ static int get_format_from_sample_fmt(const char **fmt,
     *fmt = NULL;
 
     for (i = 0; i < FF_ARRAY_ELEMS(sample_fmt_entries); i++) {
-        struct sample_fmt_entry *entry = &sample_fmt_entries[i];
+        struct sample_fmt_entry* entry = &sample_fmt_entries[i];
         if (sample_fmt == entry->sample_fmt) {
             *fmt = AV_NE(entry->fmt_be, entry->fmt_le);
             return 0;
@@ -34,13 +34,13 @@ static int get_format_from_sample_fmt(const char **fmt,
     }
 
     fprintf(stderr,
-            "sample format %s is not supported as output format\n",
-            av_get_sample_fmt_name(sample_fmt));
+        "sample format %s is not supported as output format\n",
+        av_get_sample_fmt_name(sample_fmt));
     return -1;
 }
 
-static void decode(AVCodecContext *dec_ctx, AVPacket *pkt, AVFrame *frame,
-                   FILE *outfile)
+static void decode(AVCodecContext* dec_ctx, AVPacket* pkt, AVFrame* frame,
+    FILE* outfile)
 {
     int i, ch;
     int ret, data_size;
@@ -68,33 +68,37 @@ static void decode(AVCodecContext *dec_ctx, AVPacket *pkt, AVFrame *frame,
             exit(1);
         }
         for (i = 0; i < frame->nb_samples; i++)
-            for (ch = 0; ch < dec_ctx->ch_layout.nb_channels; ch++)
-                fwrite(frame->data[ch] + data_size*i, 1, data_size, outfile);
+        {
+            for (ch = 0; ch < dec_ctx->ch_layout.nb_channels; ch++) {
+                fwrite(frame->data[ch] + data_size * i, 1, data_size, outfile);
+            }
+        }
+
     }
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
-    const char *outfilename, *filename;
-    const AVCodec *codec;
-    AVCodecContext *c= NULL;
-    AVCodecParserContext *parser = NULL;
+    const char* outfilename, * filename;
+    const AVCodec* codec;
+    AVCodecContext* c = NULL;
+    AVCodecParserContext* parser = NULL;
     int len, ret;
-    FILE *f, *outfile;
+    FILE* f, * outfile;
     uint8_t inbuf[AUDIO_INBUF_SIZE + AV_INPUT_BUFFER_PADDING_SIZE];
-    uint8_t *data;
+    uint8_t* data;
     size_t   data_size;
-    AVPacket *pkt;
-    AVFrame *decoded_frame = NULL;
+    AVPacket* pkt;
+    AVFrame* decoded_frame = NULL;
     enum AVSampleFormat sfmt;
     int n_channels = 0;
-    const char *fmt;
+    const char* fmt;
 
     if (argc <= 2) {
         fprintf(stderr, "Usage: %s <input file> <output file>\n", argv[0]);
         exit(0);
     }
-    filename    = argv[1];
+    filename = argv[1];
     outfilename = argv[2];
 
     pkt = av_packet_alloc();
@@ -141,8 +145,18 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+    uint8_t mp3_header[10];
+    if (NULL != strstr(filename, ".mp3"))
+    {
+        fread(mp3_header, 10, 1, f);
+        long frame_size = (mp3_header[6] & 0xff) << 21 | (mp3_header[7] & 0xff) << 14 | (mp3_header[8] & 0xff) << 7 | mp3_header[9] & 0xff;
+        data = inbuf;
+        fseek(f, frame_size + 10, 0);
+    }
+
+
     /* decode until eof */
-    data      = inbuf;
+    data = inbuf;
     data_size = fread(inbuf, 1, AUDIO_INBUF_SIZE, f);
 
     while (data_size > 0) {
@@ -154,13 +168,13 @@ int main(int argc, char **argv)
         }
 
         ret = av_parser_parse2(parser, c, &pkt->data, &pkt->size,
-                               data, data_size,
-                               AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
+            data, data_size,
+            AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
         if (ret < 0) {
             fprintf(stderr, "Error while parsing\n");
             exit(1);
         }
-        data      += ret;
+        data += ret;
         data_size -= ret;
 
         if (pkt->size)
@@ -170,7 +184,7 @@ int main(int argc, char **argv)
             memmove(inbuf, data, data_size);
             data = inbuf;
             len = fread(data + data_size, 1,
-                        AUDIO_INBUF_SIZE - data_size, f);
+                AUDIO_INBUF_SIZE - data_size, f);
             if (len > 0)
                 data_size += len;
         }
@@ -185,10 +199,10 @@ int main(int argc, char **argv)
     sfmt = c->sample_fmt;
 
     if (av_sample_fmt_is_planar(sfmt)) {
-        const char *packed = av_get_sample_fmt_name(sfmt);
+        const char* packed = av_get_sample_fmt_name(sfmt);
         printf("Warning: the sample format the decoder produced is planar "
-               "(%s). This example will output the first channel only.\n",
-               packed ? packed : "?");
+            "(%s). This example will output the first channel only.\n",
+            packed ? packed : "?");
         sfmt = av_get_packed_sample_fmt(sfmt);
     }
 
@@ -197,9 +211,11 @@ int main(int argc, char **argv)
         goto end;
 
     printf("Play the output audio file with the command:\n"
-           "ffplay -f %s -ac %d -ar %d %s\n",
-           fmt, n_channels, c->sample_rate,
-           outfilename);
+        "ffplay -f %s -ch_layout stereo -sample_rate %d -i %s\n",
+        fmt, c->sample_rate,
+        outfilename);  // ffplay -f f32le -ac 2 -ar 44100 a.pcm
+
+    // printf("ffplay -f f32le -ch_layout stereo -sample_rate 44100 -i D:\f32le_stereo_44100.pcm");
 end:
     fclose(outfile);
     fclose(f);
