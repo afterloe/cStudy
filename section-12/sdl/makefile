@@ -19,7 +19,7 @@ LDLIBS := $(shell pkg-config --libs $(SDL_2)) $(LDLIBS)
 all: clean
 
 build:
-	$(CC) $(CFLAGS) -c -o case_6.o case_7.c
+	$(CC) $(CFLAGS) -c -o case_6.o case_5.c
 	$(CC) case_6.o $(LDLIBS) -o case_7
 
 clean:

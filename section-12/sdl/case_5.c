@@ -1,204 +1,170 @@
 
-# include <stdio.h>
-# include <assert.h>
+#include <stdio.h>
+#include <SDL_types.h>
+#include "SDL.h"
 
-# include <SDL.h>
-# include <SDL_thread.h>
+#include <libswresample/swresample.h>
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libswscale/swscale.h>
 
-# include <libavcodec/avcodec.h>
-# include <libavformat/avformat.h>
-# include <libswscale/swscale.h>
-# include <libswresample/swresample.h>
-#include <libavutil/frame.h>
-#include <libavutil/mem.h>
+#define MAX_AUDIO_FRAME_SIZE 19200
 
+static  Uint32  _audioLen = 0;
+static  Uint8  *_audioPos = NULL;
 
-#define AUDIO_INBUF_SIZE 20480
-#define AUDIO_REFILL_THRESH 4096
-
-static int get_format_from_sample_fmt(const char **fmt,
-                                      enum AVSampleFormat sample_fmt)
+void allBack_fillAudioData(void *userdata, uint8_t *stream, int len)
 {
-    int i;
-    struct sample_fmt_entry {
-        enum AVSampleFormat sample_fmt; const char *fmt_be, *fmt_le;
-    } sample_fmt_entries[] = {
-        { AV_SAMPLE_FMT_U8,  "u8",    "u8"    },
-        { AV_SAMPLE_FMT_S16, "s16be", "s16le" },
-        { AV_SAMPLE_FMT_S32, "s32be", "s32le" },
-        { AV_SAMPLE_FMT_FLT, "f32be", "f32le" },
-        { AV_SAMPLE_FMT_DBL, "f64be", "f64le" },
-    };
-    *fmt = NULL;
-
-    for (i = 0; i < FF_ARRAY_ELEMS(sample_fmt_entries); i++) {
-        struct sample_fmt_entry *entry = &sample_fmt_entries[i];
-        if (sample_fmt == entry->sample_fmt) {
-            *fmt = AV_NE(entry->fmt_be, entry->fmt_le);
-            return 0;
-        }
+    SDL_memset(stream, 0, len);
+    if(_audioLen == 0)
+    {
+        return;
     }
+    len = (len > _audioLen ? _audioLen : len);
 
-    fprintf(stderr,
-            "sample format %s is not supported as output format\n",
-            av_get_sample_fmt_name(sample_fmt));
-    return -1;
+    SDL_MixAudio(stream, _audioPos, len, SDL_MIX_MAXVOLUME);
+
+    _audioPos += len;
+    _audioLen -= len;
 }
 
-static void decode(AVCodecContext *dec_ctx, AVPacket *pkt, AVFrame *frame,
-                   FILE *outfile)
-{
-    int i, ch;
-    int ret, data_size;
+int main(int argc, char** argv) {
+    AVFormatContext* ctx = NULL;
+    AVDictionaryEntry* dictionary = NULL;
 
-    /* send the packet with the compressed data to the decoder */
-    ret = avcodec_send_packet(dec_ctx, pkt);
-    if (ret < 0) {
-        fprintf(stderr, "Error submitting the packet to the decoder\n");
-        exit(1);
+    int ret;
+    ret = avformat_open_input(&ctx, argv[1], NULL, NULL);
+    if (EXIT_SUCCESS != ret)
+    {
+        perror("open file :");
+        exit(EXIT_FAILURE);
+    }
+    ret = avformat_find_stream_info(ctx, NULL);
+    if (EXIT_SUCCESS != ret)
+    {
+        perror("find stream :");
+        exit(EXIT_FAILURE);
     }
 
-    /* read all the output frames (in general there may be any number of them */
-    while (ret >= 0) {
-        ret = avcodec_receive_frame(dec_ctx, frame);
-        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
-            return;
-        else if (ret < 0) {
-            fprintf(stderr, "Error during decoding\n");
-            exit(1);
-        }
-        data_size = av_get_bytes_per_sample(dec_ctx->sample_fmt);
-        if (data_size < 0) {
-            /* This should not occur, checking just for paranoia */
-            fprintf(stderr, "Failed to calculate data size\n");
-            exit(1);
-        }
-        for (i = 0; i < frame->nb_samples; i++)
-            for (ch = 0; ch < dec_ctx->ch_layout.nb_channels; ch++)
-                fwrite(frame->data[ch] + data_size*i, 1, data_size, outfile);
-    }
-}
+    printf("FILE: \t %s \n", argv[1]);
+    printf("Format: \t %s \n", ctx->iformat->name);
+    printf("Duration: \t %lld seconds \n", ctx->duration / AV_TIME_BASE);
 
-int main(int argc, char **argv) {
-    const char *filename;
-    const AVCodec *codec;
-    AVCodecContext *c= NULL;
-    AVCodecParserContext *parser = NULL;
-    int len, ret;
-    FILE *f;
-    uint8_t inbuf[AUDIO_INBUF_SIZE + AV_INPUT_BUFFER_PADDING_SIZE];
-    uint8_t *data;
-    size_t   data_size;
-    AVPacket *pkt;
-    AVFrame *decoded_frame = NULL;
-    enum AVSampleFormat sfmt;
-    int n_channels = 0;
-    const char *fmt;
-
-    if (argc <= 2) {
-        fprintf(stderr, "Usage: %s <input file> <output file>\n", argv[0]);
-        exit(0);
-    }
-    filename    = argv[1];
-
-
-    pkt = av_packet_alloc();
-
-    /* find the MPEG audio decoder */
-    codec = avcodec_find_decoder(AV_CODEC_ID_MP2);
-    if (!codec) {
-        fprintf(stderr, "Codec not found\n");
-        exit(1);
+    printf("Music Info \n");
+    while (dictionary = av_dict_get(ctx->metadata, "", dictionary, AV_DICT_IGNORE_SUFFIX), dictionary != NULL)
+    {
+        printf("\t %s: \t %s", dictionary->key, dictionary->value);
     }
 
-    parser = av_parser_init(codec->id);
-    if (!parser) {
-        fprintf(stderr, "Parser not found\n");
-        exit(1);
+    int audioStreamIdx = av_find_best_stream(ctx, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
+    if (-1 == audioStreamIdx)
+    {
+    ERR_CLOSE:
+        perror("record:");
+        printf("can't read any info \n");
+        avformat_close_input(&ctx);
+        exit(EXIT_FAILURE);
+
+    }
+    AVStream* stream = ctx->streams[audioStreamIdx];
+    if (stream->codecpar->codec_type != AVMEDIA_TYPE_AUDIO)
+    {
+        printf("can't read any info \n");
+        goto ERR_CLOSE;
     }
 
-    c = avcodec_alloc_context3(codec);
-    if (!c) {
-        fprintf(stderr, "Could not allocate audio codec context\n");
-        exit(1);
+    // 音频流参数
+    AVCodecParameters* pCodecParameters = ctx->streams[audioStreamIdx]->codecpar;
+
+    // 获取解码器
+    AVCodec* pCodec = avcodec_find_decoder(pCodecParameters->codec_id);
+    if (NULL == pCodec)
+    {
+        printf("can't find codec \n");
+        goto ERR_CLOSE;
     }
 
-    /* open it */
-    if (avcodec_open2(c, codec, NULL) < 0) {
-        fprintf(stderr, "Could not open codec\n");
-        exit(1);
+    // 解码器Ctx
+    AVCodecContext* pCodecCtx = avcodec_alloc_context3(pCodec);
+    if (NULL == pCodecCtx)
+    {
+        printf("can't get codecCtx \n");
+        goto ERR_CLOSE;
     }
 
-    f = fopen(filename, "rb");
-    if (!f) {
-        fprintf(stderr, "Could not open %s\n", filename);
-        exit(1);
+    // 打开解码器
+    ret = avcodec_open2(pCodecCtx, pCodec, NULL);
+    if (ret < 0)
+    {
+        printf("open codec failed \n");
+        goto ERR_CLOSE;
     }
 
-    /* decode until eof */
-    data      = inbuf;
-    data_size = fread(inbuf, 1, AUDIO_INBUF_SIZE, f);
+    AVPacket* packet = av_malloc(sizeof(AVPacket));  // 解码前的帧 
+    av_init_packet(packet);
+    AVFrame* pFrame = av_frame_alloc(); // 解码后的帧 
+    uint64_t out_channel_layout = AV_CH_LAYOUT_STEREO; // 输出声道
+    enum AVSampleFormat out_sample_fmt = AV_SAMPLE_FMT_S16; // 输出格式S16
 
-    while (data_size > 0) {
-        if (!decoded_frame) {
-            if (!(decoded_frame = av_frame_alloc())) {
-                fprintf(stderr, "Could not allocate audio frame\n");
-                exit(1);
+    SDL_AudioSpec spec;
+    spec.freq = 44100;     // 指定了每秒向音频设备发送的sample数。常用的值为：11025，22050，44100。值越高质量越好。
+    spec.format = AUDIO_S16; // 每个sample的大小
+    spec.channels = 2; // 1 单通道 - 2双通道
+    spec.silence = 0;
+    spec.samples = 1024; // 这个值表示音频缓存区的大小（以sample计）。一个sample是一段大小为 format * channels 的音频数据。
+    spec.callback = allBack_fillAudioData;
+    spec.userdata = 0;
+
+    // 步骤一：初始化音频子系统
+    ret = SDL_Init(SDL_INIT_AUDIO);
+    if(ret)
+    {
+        printf("can't init SDL \n");
+        goto ERR_CLOSE;
+    }
+
+    // 步骤二：打开音频设备
+    ret = SDL_OpenAudio(&spec, 0);
+    if(ret)
+    {
+        printf("can't open SDL \n");
+        goto ERR_CLOSE;
+    }
+
+    // 步骤三：开始播放
+    SDL_PauseAudio(0);
+
+    static Uint8 *audio_chunk;
+    uint8_t *out_buffer;
+    struct SwrContext *au_convert_ctx;
+    int audioStream = -1;
+    int out_buffer_size = av_samples_get_buffer_size(NULL, 2, 1024, out_sample_fmt, 1);
+    while (av_read_frame(ctx, packet) >= 0) {
+        if (packet->stream_index == audioStream) {
+            avcodec_send_packet(pCodecCtx, packet);
+            while (avcodec_receive_frame(pCodecCtx, pFrame) == 0) {
+                swr_convert(au_convert_ctx, &out_buffer, MAX_AUDIO_FRAME_SIZE, (const uint8_t **) pFrame->data,pFrame->nb_samples); // 转换音频
+            }
+
+            audio_chunk = (Uint8 *) out_buffer;
+            _audioLen = out_buffer_size;
+            _audioPos = audio_chunk;
+
+            while (_audioLen > 0) {
+                SDL_Delay(1);//延迟播放
             }
         }
-
-        ret = av_parser_parse2(parser, c, &pkt->data, &pkt->size,
-                               data, data_size,
-                               AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
-        if (ret < 0) {
-            fprintf(stderr, "Error while parsing\n");
-            exit(1);
-        }
-        data      += ret;
-        data_size -= ret;
-
-        if (pkt->size)
-            decode(c, pkt, decoded_frame, outfile);
-
-        if (data_size < AUDIO_REFILL_THRESH) {
-            memmove(inbuf, data, data_size);
-            data = inbuf;
-            len = fread(data + data_size, 1,
-                        AUDIO_INBUF_SIZE - data_size, f);
-            if (len > 0)
-                data_size += len;
-        }
+        av_packet_unref(packet);
     }
 
-    /* flush the decoder */
-    pkt->data = NULL;
-    pkt->size = 0;
-    decode(c, pkt, decoded_frame, outfile);
-
-    /* print output pcm infomations, because there have no metadata of pcm */
-    sfmt = c->sample_fmt;
-
-    if (av_sample_fmt_is_planar(sfmt)) {
-        const char *packed = av_get_sample_fmt_name(sfmt);
-        printf("Warning: the sample format the decoder produced is planar "
-               "(%s). This example will output the first channel only.\n",
-               packed ? packed : "?");
-        sfmt = av_get_packed_sample_fmt(sfmt);
-    }
-
-    n_channels = c->ch_layout.nb_channels;
-    if ((ret = get_format_from_sample_fmt(&fmt, sfmt)) < 0)
-        goto end;
+    swr_free(&au_convert_ctx);
 
 
-    end:
-        fclose(outfile);
-    fclose(f);
-
-    avcodec_free_context(&c);
-    av_parser_close(parser);
-    av_frame_free(&decoded_frame);
-    av_packet_free(&pkt);
+    // 步骤五：播放完毕
+    SDL_CloseAudio();
+    SDL_Quit();
+    printf("play is done");
+    goto ERR_CLOSE;
 
     return 0;
 }

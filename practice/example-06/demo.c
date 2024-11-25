@@ -1,150 +1,204 @@
 
-#include <stdio.h>
-#include <SDL_types.h>
-#include "SDL.h"
+# include <stdio.h>
+# include <assert.h>
 
-#include <libswresample/swresample.h>
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-#include <libswscale/swscale.h>
+# include <SDL.h>
+# include <SDL_thread.h>
 
-static Uint8 *audio_chunk;
-static Uint32 audio_len;
-static Uint8 *audio_pos;
-
-#define MAX_AUDIO_FRAME_SIZE 19200
+# include <libavcodec/avcodec.h>
+# include <libavformat/avformat.h>
+# include <libswscale/swscale.h>
+# include <libswresample/swresample.h>
+#include <libavutil/frame.h>
+#include <libavutil/mem.h>
 
 
-//音频设备需要更多数据的时候会调用该回调函数
-void read_audio_data(void *udata, Uint8 *stream, int len) {
+#define AUDIO_INBUF_SIZE 20480
+#define AUDIO_REFILL_THRESH 4096
 
-    //首先使用SDL_memset()将stream中的数据设置为0
-    SDL_memset(stream, 0, len);
-    if (audio_len == 0)
-        return;
-    len = (len > audio_len ? audio_len : len);
+static int get_format_from_sample_fmt(const char **fmt,
+                                      enum AVSampleFormat sample_fmt)
+{
+    int i;
+    struct sample_fmt_entry {
+        enum AVSampleFormat sample_fmt; const char *fmt_be, *fmt_le;
+    } sample_fmt_entries[] = {
+        { AV_SAMPLE_FMT_U8,  "u8",    "u8"    },
+        { AV_SAMPLE_FMT_S16, "s16be", "s16le" },
+        { AV_SAMPLE_FMT_S32, "s32be", "s32le" },
+        { AV_SAMPLE_FMT_FLT, "f32be", "f32le" },
+        { AV_SAMPLE_FMT_DBL, "f64be", "f64le" },
+    };
+    *fmt = NULL;
 
-    SDL_MixAudio(stream, audio_pos, len, SDL_MIX_MAXVOLUME);
-    audio_pos += len;
-    audio_len -= len;
+    for (i = 0; i < FF_ARRAY_ELEMS(sample_fmt_entries); i++) {
+        struct sample_fmt_entry *entry = &sample_fmt_entries[i];
+        if (sample_fmt == entry->sample_fmt) {
+            *fmt = AV_NE(entry->fmt_be, entry->fmt_le);
+            return 0;
+        }
+    }
+
+    fprintf(stderr,
+            "sample format %s is not supported as output format\n",
+            av_get_sample_fmt_name(sample_fmt));
+    return -1;
 }
 
-int main(int argc, char *argv[]) {
-    char *file = "/home/afterloe/音乐/周杰伦-爱在西元前.flac";
+static void decode(AVCodecContext *dec_ctx, AVPacket *pkt, AVFrame *frame,
+                   FILE *outfile)
+{
+    int i, ch;
+    int ret, data_size;
 
-    AVFormatContext *pFormatCtx = NULL;
-
-    int i, audioStream = -1;
-
-    AVCodecParameters *pCodecParameters = NULL;
-    AVCodecContext *pCodecCtx = NULL;
-
-    AVCodec *pCodec = NULL;
-    AVFrame *pFrame = NULL;
-    AVPacket *packet;
-    uint8_t *out_buffer;
-
-    int64_t in_channel_layout;
-
-    struct SwrContext *au_convert_ctx;
-
-    if (avformat_open_input(&pFormatCtx, file, NULL, NULL) != 0) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to open video file!");
-        return -1; // Couldn't open file
+    /* send the packet with the compressed data to the decoder */
+    ret = avcodec_send_packet(dec_ctx, pkt);
+    if (ret < 0) {
+        fprintf(stderr, "Error submitting the packet to the decoder\n");
+        exit(1);
     }
 
-    audioStream = av_find_best_stream(pFormatCtx, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
+    /* read all the output frames (in general there may be any number of them */
+    while (ret >= 0) {
+        ret = avcodec_receive_frame(dec_ctx, frame);
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+            return;
+        else if (ret < 0) {
+            fprintf(stderr, "Error during decoding\n");
+            exit(1);
+        }
+        data_size = av_get_bytes_per_sample(dec_ctx->sample_fmt);
+        if (data_size < 0) {
+            /* This should not occur, checking just for paranoia */
+            fprintf(stderr, "Failed to calculate data size\n");
+            exit(1);
+        }
+        for (i = 0; i < frame->nb_samples; i++)
+            for (ch = 0; ch < dec_ctx->ch_layout.nb_channels; ch++)
+                fwrite(frame->data[ch] + data_size*i, 1, data_size, outfile);
+    }
+}
 
-    if (audioStream == -1) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Din't find a video stream!");
-        return -1;// Didn't find a video stream
+int main(int argc, char **argv) {
+    const char *filename;
+    const AVCodec *codec;
+    AVCodecContext *c= NULL;
+    AVCodecParserContext *parser = NULL;
+    int len, ret;
+    FILE *f;
+    uint8_t inbuf[AUDIO_INBUF_SIZE + AV_INPUT_BUFFER_PADDING_SIZE];
+    uint8_t *data;
+    size_t   data_size;
+    AVPacket *pkt;
+    AVFrame *decoded_frame = NULL;
+    enum AVSampleFormat sfmt;
+    int n_channels = 0;
+    const char *fmt;
+
+    if (argc <= 2) {
+        fprintf(stderr, "Usage: %s <input file> <output file>\n", argv[0]);
+        exit(0);
+    }
+    filename    = argv[1];
+
+
+    pkt = av_packet_alloc();
+
+    /* find the MPEG audio decoder */
+    codec = avcodec_find_decoder(AV_CODEC_ID_MP2);
+    if (!codec) {
+        fprintf(stderr, "Codec not found\n");
+        exit(1);
     }
 
-    // 音频流参数
-    pCodecParameters = pFormatCtx->streams[audioStream]->codecpar;
-
-    // 获取解码器
-    pCodec = avcodec_find_decoder(pCodecParameters->codec_id);
-    if (pCodec == NULL) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Unsupported codec!\n");
-        return -1; // Codec not found
+    parser = av_parser_init(codec->id);
+    if (!parser) {
+        fprintf(stderr, "Parser not found\n");
+        exit(1);
     }
 
-    // Copy context
-    pCodecCtx = avcodec_alloc_context3(pCodec);
-    if (avcodec_parameters_to_context(pCodecCtx, pCodecParameters) != 0) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't copy codec context");
-        return -1;// Error copying codec context
+    c = avcodec_alloc_context3(codec);
+    if (!c) {
+        fprintf(stderr, "Could not allocate audio codec context\n");
+        exit(1);
     }
 
-    // Open codec
-    if (avcodec_open2(pCodecCtx, pCodec, NULL) < 0) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to open decoder!\n");
-        return -1; // Could not open codec
-    }
-    packet = (AVPacket *) av_malloc(sizeof(AVPacket));
-    av_init_packet(packet);
-    pFrame = av_frame_alloc();
-
-    uint64_t out_channel_layout = AV_CH_LAYOUT_STEREO;//输出声道
-    int out_nb_samples = 1024;
-    enum AVSampleFormat out_sample_fmt = AV_SAMPLE_FMT_S16;//输出格式S16
-    int out_sample_rate = 44100;
-
-    int out_channels = pCodecCtx->ch_layout.nb_channels;
-
-    int out_buffer_size = av_samples_get_buffer_size(NULL, out_channels, out_nb_samples, out_sample_fmt, 1);
-    out_buffer = (uint8_t *) av_malloc(MAX_AUDIO_FRAME_SIZE * 2);
-
-
-    //Init
-    if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER)) {
-        printf("Could not initialize SDL - %s\n", SDL_GetError());
-        return -1;
+    /* open it */
+    if (avcodec_open2(c, codec, NULL) < 0) {
+        fprintf(stderr, "Could not open codec\n");
+        exit(1);
     }
 
-    SDL_AudioSpec spec;
-    spec.freq = out_sample_rate;
-    spec.format = AUDIO_S16SYS;
-    spec.channels = out_channels;
-    spec.silence = 0;
-    spec.samples = out_nb_samples;
-    spec.callback = read_audio_data;
-    spec.userdata = pCodecCtx;
-
-    if (SDL_OpenAudio(&spec, NULL) < 0) {
-        printf("can't open audio.\n");
-        return -1;
+    f = fopen(filename, "rb");
+    if (!f) {
+        fprintf(stderr, "Could not open %s\n", filename);
+        exit(1);
     }
 
-    // in_channel_layout = av_get_default_channel_layout(pCodecCtx);
+    /* decode until eof */
+    data      = inbuf;
+    data_size = fread(inbuf, 1, AUDIO_INBUF_SIZE, f);
 
-    printf("in_channel_layout --->%d\n", in_channel_layout);
-    au_convert_ctx = swr_alloc();
-    au_convert_ctx = swr_alloc_set_opts2(au_convert_ctx, out_channel_layout, out_sample_fmt, out_sample_rate,in_channel_layout, pCodecCtx->sample_fmt, pCodecCtx->sample_rate, 0, NULL);
-    swr_init(au_convert_ctx);
-
-    SDL_PauseAudio(0);
-
-    while (av_read_frame(pFormatCtx, packet) >= 0) {
-        if (packet->stream_index == audioStream) {
-            avcodec_send_packet(pCodecCtx, packet);
-            while (avcodec_receive_frame(pCodecCtx, pFrame) == 0) {
-                swr_convert(au_convert_ctx, &out_buffer, MAX_AUDIO_FRAME_SIZE, (const uint8_t **) pFrame->data,pFrame->nb_samples); // 转换音频
-            }
-
-            audio_chunk = (Uint8 *) out_buffer;
-            audio_len = out_buffer_size;
-            audio_pos = audio_chunk;
-
-            while (audio_len > 0) {
-                SDL_Delay(1);//延迟播放
+    while (data_size > 0) {
+        if (!decoded_frame) {
+            if (!(decoded_frame = av_frame_alloc())) {
+                fprintf(stderr, "Could not allocate audio frame\n");
+                exit(1);
             }
         }
-        av_packet_unref(packet);
+
+        ret = av_parser_parse2(parser, c, &pkt->data, &pkt->size,
+                               data, data_size,
+                               AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
+        if (ret < 0) {
+            fprintf(stderr, "Error while parsing\n");
+            exit(1);
+        }
+        data      += ret;
+        data_size -= ret;
+
+        if (pkt->size)
+            decode(c, pkt, decoded_frame, outfile);
+
+        if (data_size < AUDIO_REFILL_THRESH) {
+            memmove(inbuf, data, data_size);
+            data = inbuf;
+            len = fread(data + data_size, 1,
+                        AUDIO_INBUF_SIZE - data_size, f);
+            if (len > 0)
+                data_size += len;
+        }
     }
-    swr_free(&au_convert_ctx);
-    SDL_Quit();
+
+    /* flush the decoder */
+    pkt->data = NULL;
+    pkt->size = 0;
+    decode(c, pkt, decoded_frame, outfile);
+
+    /* print output pcm infomations, because there have no metadata of pcm */
+    sfmt = c->sample_fmt;
+
+    if (av_sample_fmt_is_planar(sfmt)) {
+        const char *packed = av_get_sample_fmt_name(sfmt);
+        printf("Warning: the sample format the decoder produced is planar "
+               "(%s). This example will output the first channel only.\n",
+               packed ? packed : "?");
+        sfmt = av_get_packed_sample_fmt(sfmt);
+    }
+
+    n_channels = c->ch_layout.nb_channels;
+    if ((ret = get_format_from_sample_fmt(&fmt, sfmt)) < 0)
+        goto end;
+
+
+    end:
+        fclose(outfile);
+    fclose(f);
+
+    avcodec_free_context(&c);
+    av_parser_close(parser);
+    av_frame_free(&decoded_frame);
+    av_packet_free(&pkt);
 
     return 0;
 }
