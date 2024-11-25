@@ -18,7 +18,7 @@ LDLIBS := $(shell pkg-config --libs $(SDL_2)) $(LDLIBS)
 .PHONY: all build clean
 
 build:
-	$(CC) $(CFLAGS) -c -o dist/a.o case_5.cc
+	$(CC) $(CFLAGS) -c -o dist/a.o case_6.c
 	$(CC) dist/a.o $(LDLIBS) -o dist/a
 
 clean:
