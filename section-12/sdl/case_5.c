@@ -11,12 +11,12 @@
 #define MAX_AUDIO_FRAME_SIZE 19200
 
 static  Uint32  _audioLen = 0;
-static  Uint8  *_audioPos = NULL;
+static  Uint8* _audioPos = NULL;
 
-void allBack_fillAudioData(void *userdata, uint8_t *stream, int len)
+void allBack_fillAudioData(void* userdata, uint8_t* stream, int len)
 {
     SDL_memset(stream, 0, len);
-    if(_audioLen == 0)
+    if (_audioLen == 0)
     {
         return;
     }
@@ -29,11 +29,14 @@ void allBack_fillAudioData(void *userdata, uint8_t *stream, int len)
 }
 
 int main(int argc, char** argv) {
+
+    char* filename = "/home/afterloe/音乐/排骨教主-搬走.flac";
+
     AVFormatContext* ctx = NULL;
     AVDictionaryEntry* dictionary = NULL;
 
     int ret;
-    ret = avformat_open_input(&ctx, argv[1], NULL, NULL);
+    ret = avformat_open_input(&ctx, filename, NULL, NULL);
     if (EXIT_SUCCESS != ret)
     {
         perror("open file :");
@@ -46,7 +49,7 @@ int main(int argc, char** argv) {
         exit(EXIT_FAILURE);
     }
 
-    printf("FILE: \t %s \n", argv[1]);
+    printf("FILE: \t %s \n", filename);
     printf("Format: \t %s \n", ctx->iformat->name);
     printf("Duration: \t %lld seconds \n", ctx->duration / AV_TIME_BASE);
 
@@ -117,7 +120,7 @@ int main(int argc, char** argv) {
 
     // 步骤一：初始化音频子系统
     ret = SDL_Init(SDL_INIT_AUDIO);
-    if(ret)
+    if (ret)
     {
         printf("can't init SDL \n");
         goto ERR_CLOSE;
@@ -125,7 +128,7 @@ int main(int argc, char** argv) {
 
     // 步骤二：打开音频设备
     ret = SDL_OpenAudio(&spec, 0);
-    if(ret)
+    if (ret)
     {
         printf("can't open SDL \n");
         goto ERR_CLOSE;
@@ -134,19 +137,19 @@ int main(int argc, char** argv) {
     // 步骤三：开始播放
     SDL_PauseAudio(0);
 
-    static Uint8 *audio_chunk;
-    uint8_t *out_buffer;
-    struct SwrContext *au_convert_ctx;
+    static Uint8* audio_chunk;
+    uint8_t* out_buffer;
+    struct SwrContext* au_convert_ctx;
     int audioStream = -1;
     int out_buffer_size = av_samples_get_buffer_size(NULL, 2, 1024, out_sample_fmt, 1);
     while (av_read_frame(ctx, packet) >= 0) {
-        if (packet->stream_index == audioStream) {
+        if (packet->stream_index == audioStreamIdx) {
             avcodec_send_packet(pCodecCtx, packet);
             while (avcodec_receive_frame(pCodecCtx, pFrame) == 0) {
-                swr_convert(au_convert_ctx, &out_buffer, MAX_AUDIO_FRAME_SIZE, (const uint8_t **) pFrame->data,pFrame->nb_samples); // 转换音频
+                swr_convert(au_convert_ctx, &out_buffer, MAX_AUDIO_FRAME_SIZE, (const uint8_t**)pFrame->data, pFrame->nb_samples); // 转换音频
             }
 
-            audio_chunk = (Uint8 *) out_buffer;
+            audio_chunk = (Uint8*)out_buffer;
             _audioLen = out_buffer_size;
             _audioPos = audio_chunk;
 

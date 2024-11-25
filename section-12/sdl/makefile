@@ -14,13 +14,18 @@ CFLAGS := $(shell pkg-config --cflags $(SDL_2)) $(CFLAGS)
 LDLIBS := $(shell pkg-config --libs $(FFMPEG_LIBS)) $(LDLIBS)
 LDLIBS := $(shell pkg-config --libs $(SDL_2)) $(LDLIBS)
 
+
+SRC = case_5 \
+
+OBJS = $(addsuffix .o, $(SRC))
+
 .PHONY: all build clean
 
-all: clean
+all: $(OBJS) $(SRC)
 
 build:
-	$(CC) $(CFLAGS) -c -o case_6.o case_5.c
-	$(CC) case_6.o $(LDLIBS) -o case_7
+	$(CC) $(CFLAGS) -c -o case_5.o case_5.c
+	$(CC) case_5.o $(LDLIBS) -o case_5
 
 clean:
-	rm -rf *.o
+	$(RM) $(SRC) $(OBJS)
