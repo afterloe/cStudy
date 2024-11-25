@@ -76,11 +76,8 @@ int main(int argc, char** argv) {
         goto ERR_CLOSE;
     }
 
-    // 音频流参数
-    AVCodecParameters* pCodecParameters = ctx->streams[audioStreamIdx]->codecpar;
-
     // 获取解码器
-    AVCodec* pCodec = avcodec_find_decoder(pCodecParameters->codec_id);
+    AVCodec* pCodec = avcodec_find_decoder(stream->codecpar->codec_id);
     if (NULL == pCodec)
     {
         printf("can't find codec \n");
@@ -103,20 +100,28 @@ int main(int argc, char** argv) {
         goto ERR_CLOSE;
     }
 
-    AVPacket* packet = av_malloc(sizeof(AVPacket));  // 解码前的帧 
-    av_init_packet(packet);
+    AVPacket* packet = av_packet_alloc();  // 解码前的帧 
+    if (!packet)
+    {
+        printf("AVPacket :");
+        goto ERR_CLOSE;
+    }
+
     AVFrame* pFrame = av_frame_alloc(); // 解码后的帧 
     uint64_t out_channel_layout = AV_CH_LAYOUT_STEREO; // 输出声道
     enum AVSampleFormat out_sample_fmt = AV_SAMPLE_FMT_S16; // 输出格式S16
+    
+    int out_nb_samples = 1024;
+    int out_sample_rate = 44100;
 
     SDL_AudioSpec spec;
-    spec.freq = 44100;     // 指定了每秒向音频设备发送的sample数。常用的值为：11025，22050，44100。值越高质量越好。
+    spec.freq = out_sample_rate;     // 指定了每秒向音频设备发送的sample数。常用的值为：11025，22050，44100。值越高质量越好。
     spec.format = AUDIO_S16; // 每个sample的大小
     spec.channels = 2; // 1 单通道 - 2双通道
     spec.silence = 0;
-    spec.samples = 1024; // 这个值表示音频缓存区的大小（以sample计）。一个sample是一段大小为 format * channels 的音频数据。
+    spec.samples = out_nb_samples; // 这个值表示音频缓存区的大小（以sample计）。一个sample是一段大小为 format * channels 的音频数据。
     spec.callback = allBack_fillAudioData;
-    spec.userdata = 0;
+    spec.userdata = pCodecCtx;
 
     // 步骤一：初始化音频子系统
     ret = SDL_Init(SDL_INIT_AUDIO);
@@ -137,16 +142,33 @@ int main(int argc, char** argv) {
     // 步骤三：开始播放
     SDL_PauseAudio(0);
 
+    
     static Uint8* audio_chunk;
-    uint8_t* out_buffer;
-    struct SwrContext* au_convert_ctx;
+    uint8_t out_buffer;
     int audioStream = -1;
     int out_buffer_size = av_samples_get_buffer_size(NULL, 2, 1024, out_sample_fmt, 1);
+    
+    SwrContext* au_convert_ctx = NULL;
+    // 初始化采样器
+    au_convert_ctx = swr_alloc();
+    ret = swr_alloc_set_opts2(&au_convert_ctx,
+                      &pCodecCtx->ch_layout,
+                      out_sample_fmt,
+                      out_sample_rate,
+                      &pCodecCtx->ch_layout,
+                      pCodecCtx->sample_fmt,
+                      pCodecCtx->sample_rate,
+                      0,
+                      NULL);
+    swr_init(au_convert_ctx);
+    fflush(stdout);
+
     while (av_read_frame(ctx, packet) >= 0) {
         if (packet->stream_index == audioStreamIdx) {
             avcodec_send_packet(pCodecCtx, packet);
             while (avcodec_receive_frame(pCodecCtx, pFrame) == 0) {
-                swr_convert(au_convert_ctx, &out_buffer, MAX_AUDIO_FRAME_SIZE, (const uint8_t**)pFrame->data, pFrame->nb_samples); // 转换音频
+                
+
             }
 
             audio_chunk = (Uint8*)out_buffer;
@@ -164,6 +186,7 @@ int main(int argc, char** argv) {
 
 
     // 步骤五：播放完毕
+    SDL_Delay(200000); // 等音频播完
     SDL_CloseAudio();
     SDL_Quit();
     printf("play is done");

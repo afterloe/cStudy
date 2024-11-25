@@ -18,8 +18,8 @@ LDLIBS := $(shell pkg-config --libs $(SDL_2)) $(LDLIBS)
 .PHONY: all build clean
 
 build:
-	g++ $(CFLAGS) -c -o dist/a.o case_5.cc
-	g++ dist/a.o $(LDLIBS) -o dist/a
+	$(CC) $(CFLAGS) -c -o dist/a.o case_5.cc
+	$(CC) dist/a.o $(LDLIBS) -o dist/a
 
 clean:
 	rm -rf dist/*
