@@ -8,6 +8,7 @@ a.txt
 *.dSYM
 out/
 .idea
+*.pcm
 **dist
 a.data
 cmake-build-debug/

@@ -46,11 +46,11 @@ int main(int argc, char** argv)
 {
     if (argc < 2)
     {
-        // help();
+        help();
     }
 
-    // char *filename = argv[1];
-    char* filename = "/home/afterloe/音乐/051.谭咏麟-朋友【玄音高端无损】.mp3";
+    char *filename = argv[1];
+    // char* filename = "/home/afterloe/音乐/051.谭咏麟-朋友【玄音高端无损】.mp3";
     out = fopen("c.pcm", "wb+");
 
     int ret = -1, streamIdx;
@@ -119,6 +119,16 @@ int main(int argc, char** argv)
         goto ERROR_CODEC_CTX;
     }
 
+    printf("Input: %s \n", filename);
+    printf("Format: %s \n", ctx->iformat->name);
+    printf("Duration: %lld seconds\n", ctx->duration / AV_TIME_BASE);
+
+    AVDictionaryEntry* metadata = NULL;
+    while ((metadata = av_dict_get(ctx->metadata, "", metadata, AV_DICT_IGNORE_SUFFIX)))
+    {
+        printf("%s=%s\n", metadata->key, metadata->value);
+    }
+
     uint8_t inbuf[AUDIO_INBUF_SIZE + AV_INPUT_BUFFER_PADDING_SIZE];
     uint8_t* data;
     if (NULL != strstr(filename, ".mp3"))
@@ -141,23 +151,22 @@ int main(int argc, char** argv)
     spec.samples = 1024;
     spec.callback = fill_audio_pcm;
     spec.userdata = parserCtx;
-    
 
-    // ret = SDL_Init(SDL_INIT_AUDIO);
-    // if (ret)
-    // {
-    //     perror("can't init SDL \n");
-    //     goto ERROR_CODEC_CTX;
-    // }
+    ret = SDL_Init(SDL_INIT_AUDIO);
+    if (ret)
+    {
+        perror("can't init SDL \n");
+        goto ERROR_CODEC_CTX;
+    }
 
-    // ret = SDL_OpenAudio(&spec, 0);
-    // if (ret < 0)
-    // {
-    //     perror("can't open SDL \n");
-    //     goto ERROR_CODEC_CTX;
-    // }
-    // s_audio_buf = calloc(1, PCM_BUFFER_SIZE);
-    // SDL_PauseAudio(0);
+    ret = SDL_OpenAudio(&spec, 0);
+    if (ret < 0)
+    {
+        perror("can't open SDL \n");
+        goto ERROR_CODEC_CTX;
+    }
+    s_audio_buf = calloc(1, PCM_BUFFER_SIZE);
+    SDL_PauseAudio(0);
 
     do
     {
@@ -193,6 +202,37 @@ int main(int argc, char** argv)
     decode(codecCtx, pkt, decoded_frame);
 
     enum AVSampleFormat sfmt = codecCtx->sample_fmt;
+
+    fseek(out, 0, SEEK_END);
+    size_t file_size = ftell(out);
+    fseek(out, 0, SEEK_SET);
+    size_t read_buffer_len, data_count = 0;
+    while (1)
+    {
+        read_buffer_len = fread(s_audio_buf, 1, PCM_BUFFER_SIZE, out);
+        if (0 == read_buffer_len)
+        {
+            break;
+        }
+        data_count += read_buffer_len;
+
+        printf("read %ld of %ld - %.2f %% \n", data_count, file_size, ((float)data_count / file_size) * 100);
+        //将当前光标往上移动一行
+        printf("\033[A");
+        //删除光标后面的内容
+        printf("\033[K");
+
+        s_audio_end = s_audio_buf + read_buffer_len;
+        s_audio_pos = s_audio_buf;
+
+        while (s_audio_pos < s_audio_end)
+        {
+            SDL_Delay(10);
+        }
+
+    }
+
+    fclose(out);
 
     if (av_sample_fmt_is_planar(sfmt)) {
         const char* packed = av_get_sample_fmt_name(sfmt);
