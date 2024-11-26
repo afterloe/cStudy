@@ -7,14 +7,24 @@
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
 #include <SDL2/SDL_version.h>
+#include <SDL2/SDL_types.h>
+#include <SDL2/SDL.h>
 
 #include "include/minplayer.h"
+
+// 每次读取2帧数据, 以1024个采样点一帧 2通道 16bit采样点为例
+#define PCM_BUFFER_SIZE (2 * 1024 * 2 * 2)
 
 #define AUDIO_INBUF_SIZE 20480
 #define AUDIO_REFILL_THRESH 4096
 
+static Uint8* s_audio_buf = NULL;   // 存储当前读取的两帧数据
+static Uint8* s_audio_pos = NULL;   // 目前读取的位置
+static Uint8* s_audio_end = NULL;   // 缓存结束位置
+
+extern void fill_audio_pcm(void*, Uint8*, int);
 extern int get_format_from_sample_fmt(const char**, enum AVSampleFormat);
-extern void decode(AVCodecContext*, AVPacket*, AVFrame*, FILE*);
+extern void decode(AVCodecContext*, AVPacket*, AVFrame*);
 
 int main(int argc, char** argv)
 {
@@ -83,7 +93,41 @@ int main(int argc, char** argv)
         perror("open src file :");
         goto ERROR_CODEC_CTX;
     }
-    FILE* dest = fopen("./a.pcm", "wb+");
+    // FILE* dest = fopen("./a.pcm", "wb+");
+
+    SDL_AudioSpec spec;
+    // spec.freq = 48000;     // 指定了每秒向音频设备发送的sample数。常用的值为：11025，22050，44100。值越高质量越好。
+    // spec.format = AUDIO_F32LSB; // 每个sample的大小
+    // spec.channels = 2; // 1 单通道 - 2双通道
+    // spec.silence = 0;
+    // spec.samples = 1024; // 这个值表示音频缓存区的大小（以sample计）。一个sample是一段大小为 format * channels 的音频数据。
+    // spec.callback = fill_audio_pcm;
+    // spec.userdata = NULL;
+
+    spec.freq = codecCtx->sample_rate;
+    spec.format = codecCtx->sample_fmt;
+    spec.channels = codecCtx->ch_layout.nb_channels;
+    spec.silence = 0;
+    spec.samples = spec.format * spec.channels;
+    spec.callback = fill_audio_pcm;
+    spec.userdata = parserCtx;
+
+    ret = SDL_Init(SDL_INIT_AUDIO);
+    if (ret)
+    {
+        perror("can't init SDL \n");
+        goto ERROR_CODEC_CTX;
+    }
+
+
+    ret = SDL_OpenAudio(&spec, 0);
+    if (ret < 0)
+    {
+        perror("can't open SDL \n");
+        goto ERROR_CODEC_CTX;
+    }
+    s_audio_buf = calloc(1, PCM_BUFFER_SIZE);
+    SDL_PauseAudio(0);
 
     AVFrame* decoded_frame = av_frame_alloc();
     if (decoded_frame == NULL)
@@ -104,6 +148,7 @@ int main(int argc, char** argv)
 
     data = inbuf;
     size_t len = fread(inbuf, 1, AUDIO_INBUF_SIZE, fd);
+    
     while (len > 0)
     {
         ret = av_parser_parse2(parserCtx, codecCtx, &pkt->data, &pkt->size, data, len, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
@@ -118,7 +163,7 @@ int main(int argc, char** argv)
 
         if (pkt->size)
         {
-            decode(codecCtx, pkt, decoded_frame, dest);
+            decode(codecCtx, pkt, decoded_frame);
         }
 
         if (len < AUDIO_REFILL_THRESH)
@@ -135,7 +180,7 @@ int main(int argc, char** argv)
 
     pkt->data = NULL;
     pkt->size = 0;
-    decode(codecCtx, pkt, decoded_frame, dest);
+    decode(codecCtx, pkt, decoded_frame);
 
     enum AVSampleFormat sfmt = codecCtx->sample_fmt;
 
@@ -153,10 +198,13 @@ int main(int argc, char** argv)
         goto end;
     }
 
+    SDL_CloseAudio();
+    SDL_Quit();
+
 end:
     if (fd > 0)
     {
-        close(fd);
+        fclose(fd);
     }
     avcodec_free_context(&codecCtx);
     av_parser_close(parserCtx);
@@ -196,7 +244,7 @@ int get_format_from_sample_fmt(const char** fmt, enum AVSampleFormat sample_fmt)
 }
 
 
-void decode(AVCodecContext* dec_ctx, AVPacket* pkt, AVFrame* frame, FILE* fd)
+void decode(AVCodecContext* dec_ctx, AVPacket* pkt, AVFrame* frame)
 {
     int i, ch;
     int ret, data_size;
@@ -226,13 +274,41 @@ void decode(AVCodecContext* dec_ctx, AVPacket* pkt, AVFrame* frame, FILE* fd)
         for (i = 0; i < frame->nb_samples; i++)
         {
             for (ch = 0; ch < dec_ctx->ch_layout.nb_channels; ch++) {
-                fwrite(frame->data[ch] + data_size * i, 1, data_size, fd);
+
+                s_audio_end = s_audio_buf + data_size;
+                s_audio_pos = s_audio_buf;
+
+                while (s_audio_pos < s_audio_end)
+                {
+                    SDL_Delay(10);
+                }
+
+
+                // fwrite(frame->data[ch] + data_size * i, 1, data_size, fd);
             }
         }
 
     }
 }
 
+//音频设备回调函数
+void fill_audio_pcm(void* udata, Uint8* stream, int len)
+{
+    // udata: 用户自定义数据
+    SDL_memset(stream, 0, len);
+    if (s_audio_pos >= s_audio_end)            // （当前两帧）数据读取完毕
+    {
+        return;
+    }
+
+    // 数据够了就读预设长度，数据不够就只读部分（不够的时候剩多少就读取多少）
+    int remain_buffer_len = s_audio_end - s_audio_pos;
+    len = (len < remain_buffer_len) ? len : remain_buffer_len;
+    // 设置混音
+    SDL_MixAudio(stream, s_audio_pos, len, SDL_MIX_MAXVOLUME);  // 音量的值 SDL_MIX_MAXVOLUME 128
+
+    s_audio_pos += len;  // 移动缓存指针（当前pos）
+}
 
 void help()
 {
@@ -240,6 +316,7 @@ void help()
     printf("supper file *.mp3 \n");
     exit(EXIT_SUCCESS);
 }
+
 
 void version()
 {
