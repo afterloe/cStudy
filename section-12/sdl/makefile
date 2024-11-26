@@ -24,7 +24,7 @@ OBJS = $(addsuffix .o, $(SRC))
 all: $(OBJS) $(SRC)
 
 build:
-	$(CC) $(CFLAGS) -c -o case_4.o case_10.c
+	$(CC) $(CFLAGS) -c -o case_4.o case_9.c
 	$(CC) case_4.o $(LDLIBS) -o case_4
 
 clean:

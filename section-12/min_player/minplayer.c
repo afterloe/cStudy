@@ -1,9 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <string.h>
-#include <sys/stat.h>
 
 #include <libswresample/swresample.h>
 #include <libavcodec/avcodec.h>
@@ -17,7 +14,7 @@
 #define AUDIO_REFILL_THRESH 4096
 
 extern int get_format_from_sample_fmt(const char**, enum AVSampleFormat);
-extern void decode(AVCodecContext*, AVPacket*, AVFrame*, int);
+extern void decode(AVCodecContext*, AVPacket*, AVFrame*, FILE*);
 
 int main(int argc, char** argv)
 {
@@ -80,13 +77,13 @@ int main(int argc, char** argv)
         goto ERROR_AV;
     }
 
-    int fd = open(filename, O_RDONLY);
+    FILE* fd = fopen(filename, "rb");
     if (fd < 0)
     {
         perror("open src file :");
         goto ERROR_CODEC_CTX;
     }
-    int dest = open("./a.pcm", O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
+    FILE* dest = fopen("./a.pcm", "wb+");
 
     AVFrame* decoded_frame = av_frame_alloc();
     if (decoded_frame == NULL)
@@ -100,13 +97,13 @@ int main(int argc, char** argv)
     if (NULL != strstr(filename, ".mp3"))
     {
         uint8_t mp3_header[10] = { 0 };
-        read(fd, mp3_header, 10);
+        fread(mp3_header, 1, 10, fd);
         long frame_size = (mp3_header[6] & 0xff) << 21 | (mp3_header[7] & 0xff) << 14 | (mp3_header[8] & 0xff) << 7 | mp3_header[9] & 0xff;
-        lseek(fd, frame_size + 10, SEEK_SET);
+        fseek(fd, frame_size + 10, SEEK_SET);
     }
 
     data = inbuf;
-    int len = read(fd, data, AUDIO_INBUF_SIZE);
+    size_t len = fread(inbuf, 1, AUDIO_INBUF_SIZE, fd);
     while (len > 0)
     {
         ret = av_parser_parse2(parserCtx, codecCtx, &pkt->data, &pkt->size, data, len, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
@@ -128,7 +125,7 @@ int main(int argc, char** argv)
         {
             memmove(inbuf, data, len);
             data = inbuf;
-            int size = read(fd, data + len, AUDIO_INBUF_SIZE - len);
+            int size = fread(data + len, 1, AUDIO_INBUF_SIZE - len, fd);
             if (size > 0)
             {
                 len += size;
@@ -199,7 +196,7 @@ int get_format_from_sample_fmt(const char** fmt, enum AVSampleFormat sample_fmt)
 }
 
 
-void decode(AVCodecContext* dec_ctx, AVPacket* pkt, AVFrame* frame, int fd)
+void decode(AVCodecContext* dec_ctx, AVPacket* pkt, AVFrame* frame, FILE* fd)
 {
     int i, ch;
     int ret, data_size;
@@ -229,7 +226,7 @@ void decode(AVCodecContext* dec_ctx, AVPacket* pkt, AVFrame* frame, int fd)
         for (i = 0; i < frame->nb_samples; i++)
         {
             for (ch = 0; ch < dec_ctx->ch_layout.nb_channels; ch++) {
-                write(fd, frame->data[ch] + data_size * i, data_size);
+                fwrite(frame->data[ch] + data_size * i, 1, data_size, fd);
             }
         }
 

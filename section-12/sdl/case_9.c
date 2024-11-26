@@ -67,6 +67,7 @@ static void decode(AVCodecContext* dec_ctx, AVPacket* pkt, AVFrame* frame,
             fprintf(stderr, "Failed to calculate data size\n");
             exit(1);
         }
+        fprintf(stdout, "write %ld bytes \n", data_size);
         for (i = 0; i < frame->nb_samples; i++)
         {
             for (ch = 0; ch < dec_ctx->ch_layout.nb_channels; ch++) {
@@ -176,6 +177,8 @@ int main(int argc, char** argv)
         }
         data += ret;
         data_size -= ret;
+
+        fprintf(stdout, "write %ld bytes \n", data_size);
 
         if (pkt->size)
             decode(c, pkt, decoded_frame, outfile);
