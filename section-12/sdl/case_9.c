@@ -211,7 +211,7 @@ int main(int argc, char** argv)
         goto end;
 
     printf("Play the output audio file with the command:\n"
-        "ffplay -f %s -ch_layout stereo -sample_rate %d -i %s\n",
+        "/usr/bin/ffmpeg/bin/ffplay -f %s -ch_layout stereo -sample_rate %d -i %s\n",
         fmt, c->sample_rate,
         outfilename);  // ffplay -f f32le -ac 2 -ar 44100 a.pcm
 
