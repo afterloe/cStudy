@@ -22,9 +22,25 @@ static Uint8* s_audio_buf = NULL;   // 存储当前读取的两帧数据
 static Uint8* s_audio_pos = NULL;   // 目前读取的位置
 static Uint8* s_audio_end = NULL;   // 缓存结束位置
 
+struct sample_fmt_entry {
+    enum AVSampleFormat sample_fmt;
+    const char* fmt_be, * fmt_le;
+    SDL_AudioFormat code;
+} sample_fmt_entries[] = {
+    { AV_SAMPLE_FMT_U8,  "u8",    "u8"    , AUDIO_U8},
+    { AV_SAMPLE_FMT_S16, "s16be", "s16le" , AUDIO_S16LSB},
+    { AV_SAMPLE_FMT_S32, "s32be", "s32le" , AUDIO_S32LSB},
+    { AV_SAMPLE_FMT_FLT, "f32be", "f32le" , AUDIO_F32LSB},
+    { AV_SAMPLE_FMT_FLTP, "f32be", "f32le" , AUDIO_F32LSB},
+    { AV_SAMPLE_FMT_DBL, "f64be", "f64le" , AUDIO_F32LSB},
+};
+
 extern void fill_audio_pcm(void*, Uint8*, int);
 extern int get_format_from_sample_fmt(const char**, enum AVSampleFormat);
+extern SDL_AudioFormat get_format(enum AVSampleFormat sample_fmt);
 extern void decode(AVCodecContext*, AVPacket*, AVFrame*);
+
+static FILE* out = NULL;
 
 int main(int argc, char** argv)
 {
@@ -35,6 +51,7 @@ int main(int argc, char** argv)
 
     // char *filename = argv[1];
     char* filename = "/home/afterloe/音乐/051.谭咏麟-朋友【玄音高端无损】.mp3";
+    out = fopen("c.pcm", "wb+");
 
     int ret = -1, streamIdx;
     AVPacket* pkt = av_packet_alloc();
@@ -95,40 +112,6 @@ int main(int argc, char** argv)
     }
     // FILE* dest = fopen("./a.pcm", "wb+");
 
-    SDL_AudioSpec spec;
-    // spec.freq = 48000;     // 指定了每秒向音频设备发送的sample数。常用的值为：11025，22050，44100。值越高质量越好。
-    // spec.format = AUDIO_F32LSB; // 每个sample的大小
-    // spec.channels = 2; // 1 单通道 - 2双通道
-    // spec.silence = 0;
-    // spec.samples = 1024; // 这个值表示音频缓存区的大小（以sample计）。一个sample是一段大小为 format * channels 的音频数据。
-    // spec.callback = fill_audio_pcm;
-    // spec.userdata = NULL;
-
-    spec.freq = codecCtx->sample_rate;
-    spec.format = codecCtx->sample_fmt;
-    spec.channels = codecCtx->ch_layout.nb_channels;
-    spec.silence = 0;
-    spec.samples = spec.format * spec.channels;
-    spec.callback = fill_audio_pcm;
-    spec.userdata = parserCtx;
-
-    ret = SDL_Init(SDL_INIT_AUDIO);
-    if (ret)
-    {
-        perror("can't init SDL \n");
-        goto ERROR_CODEC_CTX;
-    }
-
-
-    ret = SDL_OpenAudio(&spec, 0);
-    if (ret < 0)
-    {
-        perror("can't open SDL \n");
-        goto ERROR_CODEC_CTX;
-    }
-    s_audio_buf = calloc(1, PCM_BUFFER_SIZE);
-    SDL_PauseAudio(0);
-
     AVFrame* decoded_frame = av_frame_alloc();
     if (decoded_frame == NULL)
     {
@@ -148,10 +131,36 @@ int main(int argc, char** argv)
 
     data = inbuf;
     size_t len = fread(inbuf, 1, AUDIO_INBUF_SIZE, fd);
+    ret = av_parser_parse2(parserCtx, codecCtx, &pkt->data, &pkt->size, data, len, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
+
+    SDL_AudioSpec spec;
+    spec.freq = codecCtx->sample_rate;
+    spec.format = get_format(codecCtx->sample_fmt);
+    spec.channels = codecCtx->ch_layout.nb_channels;
+    spec.silence = 0;
+    spec.samples = 1024;
+    spec.callback = fill_audio_pcm;
+    spec.userdata = parserCtx;
     
-    while (len > 0)
+
+    // ret = SDL_Init(SDL_INIT_AUDIO);
+    // if (ret)
+    // {
+    //     perror("can't init SDL \n");
+    //     goto ERROR_CODEC_CTX;
+    // }
+
+    // ret = SDL_OpenAudio(&spec, 0);
+    // if (ret < 0)
+    // {
+    //     perror("can't open SDL \n");
+    //     goto ERROR_CODEC_CTX;
+    // }
+    // s_audio_buf = calloc(1, PCM_BUFFER_SIZE);
+    // SDL_PauseAudio(0);
+
+    do
     {
-        ret = av_parser_parse2(parserCtx, codecCtx, &pkt->data, &pkt->size, data, len, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
         if (ret < 0)
         {
             perror("Error while parsing \n");
@@ -176,7 +185,8 @@ int main(int argc, char** argv)
                 len += size;
             }
         }
-    }
+        ret = av_parser_parse2(parserCtx, codecCtx, &pkt->data, &pkt->size, data, len, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
+    } while (len > 0);
 
     pkt->data = NULL;
     pkt->size = 0;
@@ -192,11 +202,11 @@ int main(int argc, char** argv)
         sfmt = av_get_packed_sample_fmt(sfmt);
     }
 
-    int n_channels = codecCtx->ch_layout.nb_channels;
     const char* fmt;
     if ((ret = get_format_from_sample_fmt(&fmt, sfmt)) < 0) {
         goto end;
     }
+    printf("%s \n", fmt);
 
     SDL_CloseAudio();
     SDL_Quit();
@@ -214,20 +224,24 @@ end:
     return EXIT_SUCCESS;
 }
 
+SDL_AudioFormat get_format(enum AVSampleFormat sample_fmt)
+{
+    for (int i = 0; i < FF_ARRAY_ELEMS(sample_fmt_entries); i++) {
+        struct sample_fmt_entry* entry = &sample_fmt_entries[i];
+        if (sample_fmt == entry->sample_fmt) {
+            return entry->code;
+        }
+    }
+
+    fprintf(stderr,
+        "sample format %s is not supported as output format\n",
+        av_get_sample_fmt_name(sample_fmt));
+    return -1;
+}
 
 int get_format_from_sample_fmt(const char** fmt, enum AVSampleFormat sample_fmt)
 {
-    int i;
-    struct sample_fmt_entry {
-        enum AVSampleFormat sample_fmt; const char* fmt_be, * fmt_le;
-    } sample_fmt_entries[] = {
-        { AV_SAMPLE_FMT_U8,  "u8",    "u8"    },
-        { AV_SAMPLE_FMT_S16, "s16be", "s16le" },
-        { AV_SAMPLE_FMT_S32, "s32be", "s32le" },
-        { AV_SAMPLE_FMT_FLT, "f32be", "f32le" },
-        { AV_SAMPLE_FMT_DBL, "f64be", "f64le" },
-    };
-    *fmt = NULL;
+    int i; *fmt = NULL;
 
     for (i = 0; i < FF_ARRAY_ELEMS(sample_fmt_entries); i++) {
         struct sample_fmt_entry* entry = &sample_fmt_entries[i];
@@ -274,17 +288,7 @@ void decode(AVCodecContext* dec_ctx, AVPacket* pkt, AVFrame* frame)
         for (i = 0; i < frame->nb_samples; i++)
         {
             for (ch = 0; ch < dec_ctx->ch_layout.nb_channels; ch++) {
-
-                s_audio_end = s_audio_buf + data_size;
-                s_audio_pos = s_audio_buf;
-
-                while (s_audio_pos < s_audio_end)
-                {
-                    SDL_Delay(10);
-                }
-
-
-                // fwrite(frame->data[ch] + data_size * i, 1, data_size, fd);
+                fwrite(frame->data[ch] + data_size * i, 1, data_size, out);
             }
         }
 
@@ -304,8 +308,8 @@ void fill_audio_pcm(void* udata, Uint8* stream, int len)
     // 数据够了就读预设长度，数据不够就只读部分（不够的时候剩多少就读取多少）
     int remain_buffer_len = s_audio_end - s_audio_pos;
     len = (len < remain_buffer_len) ? len : remain_buffer_len;
-    // 设置混音
-    SDL_MixAudio(stream, s_audio_pos, len, SDL_MIX_MAXVOLUME);  // 音量的值 SDL_MIX_MAXVOLUME 128
+    // 将声音写入设备
+    SDL_MixAudio(stream, s_audio_pos, len, SDL_MIX_MAXVOLUME);
 
     s_audio_pos += len;  // 移动缓存指针（当前pos）
 }
