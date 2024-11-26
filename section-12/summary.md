@@ -166,3 +166,15 @@ system("pause");
 ## 文件
 ### 文件读写
 [case_3.cc](case_3.cc)
+
+## 与C混合编译
+
+与c混合编译需要注意 头文件的引用，如果是c的头文件，需要加 如下内容才能应用
+
+```cpp
+extern "C" {
+    #include <SDL2/SDL.h>
+
+    // you want to include
+}
+```

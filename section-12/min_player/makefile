@@ -1,6 +1,6 @@
-SDL_2=  sdl2 \
+SDL_2 =  sdl2 \
 
-FFMPEG_LIBS=     libavdevice                        \
+FFMPEG_LIBS =     libavdevice                        \
                  libavformat                        \
                  libavfilter                        \
                  libavcodec                         \
@@ -14,8 +14,12 @@ CFLAGS := $(shell pkg-config --cflags $(SDL_2)) $(CFLAGS)
 LDLIBS := $(shell pkg-config --libs $(FFMPEG_LIBS)) $(LDLIBS)
 LDLIBS := $(shell pkg-config --libs $(SDL_2)) $(LDLIBS)
 
+APP = minplayer
 
-SRC = case_5 \
+CFLAGS := ./include \
+    $(CFLAGS)
+    
+SRC = minplayer \
 
 OBJS = $(addsuffix .o, $(SRC))
 
@@ -23,9 +27,9 @@ OBJS = $(addsuffix .o, $(SRC))
 
 all: $(OBJS) $(SRC)
 
-build:
-	$(CC) $(CFLAGS) -c -o case_4.o case_10.c
-	$(CC) case_4.o $(LDLIBS) -o case_4
+build: $(OBJS) 
+	$(CC) $(OBJS) $(LDLIBS) -o $(APP)
 
+.ONESHELL:
 clean:
-	$(RM) $(SRC) $(OBJS)
+	$(RM) $(SRC) $(OBJS) $(APP)
