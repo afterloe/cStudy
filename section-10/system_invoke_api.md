@@ -4,7 +4,7 @@
 ## 文件系统
 ### int open(const char*, int flags, mode_t mode)
 头文件       
-    #include <unistd.h>   
+    #include <fnctl.h>   
 功能：   
     打开文件，如果文件不存在则可以选择创建。  
 参数：  
@@ -28,6 +28,7 @@ flags 列表
 | O_NONBLOCK |	对于设备文件, 以O_NONBLOCK方式打开可以做非阻塞I/O
 
 mode 说明
+> `#include <sys/stat.h>`
 | 取值 | 掩码 | 含义
 | --- | ---- | ---
 | S_IRWXU | 	00700 | 	文件所有者的读、写、可执行权限
