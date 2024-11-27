@@ -1,70 +1,66 @@
+/*
+ * Copyright (c) 2001 Fabrice Bellard
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 
-# include <iostream>
-# include <stdio.h>
-# include <assert.h>
+/**
+ * @file libavcodec video decoding API usage example
+ * @example decode_video.c *
+ *
+ * Read from an MPEG1 video file, decode frames, and generate PGM images as
+ * output.
+ */
 
-# include <SDL.h>
-# include <SDL_thread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-extern "C"
+#include <libavcodec/avcodec.h>
+
+#define INBUF_SIZE 4096
+
+static void pgm_save(unsigned char *buf, int wrap, int xsize, int ysize,
+                     char *filename)
 {
-# include <libavcodec/avcodec.h>
-# include <libavformat/avformat.h>
-# include <libswscale/swscale.h>
-# include <libswresample/swresample.h>
-#include <libavutil/frame.h>
-#include <libavutil/mem.h>
-}
-
-using namespace std;
-
-
-#define AUDIO_INBUF_SIZE 20480
-#define AUDIO_REFILL_THRESH 4096
-
-static int get_format_from_sample_fmt(const char **fmt,
-                                      enum AVSampleFormat sample_fmt)
-{
+    FILE *f;
     int i;
-    struct sample_fmt_entry {
-        enum AVSampleFormat sample_fmt; const char *fmt_be, *fmt_le;
-    } sample_fmt_entries[] = {
-        { AV_SAMPLE_FMT_U8,  "u8",    "u8"    },
-        { AV_SAMPLE_FMT_S16, "s16be", "s16le" },
-        { AV_SAMPLE_FMT_S32, "s32be", "s32le" },
-        { AV_SAMPLE_FMT_FLT, "f32be", "f32le" },
-        { AV_SAMPLE_FMT_DBL, "f64be", "f64le" },
-    };
-    *fmt = NULL;
 
-    for (i = 0; i < FF_ARRAY_ELEMS(sample_fmt_entries); i++) {
-        struct sample_fmt_entry *entry = &sample_fmt_entries[i];
-        if (sample_fmt == entry->sample_fmt) {
-            *fmt = AV_NE(entry->fmt_be, entry->fmt_le);
-            return 0;
-        }
-    }
-
-    fprintf(stderr,
-            "sample format %s is not supported as output format\n",
-            av_get_sample_fmt_name(sample_fmt));
-    return -1;
+    f = fopen(filename,"wb");
+    fprintf(f, "P5\n%d %d\n%d\n", xsize, ysize, 255);
+    for (i = 0; i < ysize; i++)
+        fwrite(buf + i * wrap, 1, xsize, f);
+    fclose(f);
 }
 
-static void decode(AVCodecContext *dec_ctx, AVPacket *pkt, AVFrame *frame,
-                   FILE *outfile)
+static void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt,
+                   const char *filename)
 {
-    int i, ch;
-    int ret, data_size;
+    char buf[1024];
+    int ret;
 
-    /* send the packet with the compressed data to the decoder */
     ret = avcodec_send_packet(dec_ctx, pkt);
     if (ret < 0) {
-        fprintf(stderr, "Error submitting the packet to the decoder\n");
+        fprintf(stderr, "Error sending a packet for decoding\n");
         exit(1);
     }
 
-    /* read all the output frames (in general there may be any number of them */
     while (ret >= 0) {
         ret = avcodec_receive_frame(dec_ctx, frame);
         if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
@@ -73,45 +69,50 @@ static void decode(AVCodecContext *dec_ctx, AVPacket *pkt, AVFrame *frame,
             fprintf(stderr, "Error during decoding\n");
             exit(1);
         }
-        data_size = av_get_bytes_per_sample(dec_ctx->sample_fmt);
-        if (data_size < 0) {
-            /* This should not occur, checking just for paranoia */
-            fprintf(stderr, "Failed to calculate data size\n");
-            exit(1);
-        }
-        for (i = 0; i < frame->nb_samples; i++)
-            for (ch = 0; ch < dec_ctx->ch_layout.nb_channels; ch++)
-                fwrite(frame->data[ch] + data_size*i, 1, data_size, outfile);
+
+        printf("saving frame %3"PRId64"\n", dec_ctx->frame_num);
+        fflush(stdout);
+
+        /* the picture is allocated by the decoder. no need to
+           free it */
+        snprintf(buf, sizeof(buf), "%s-%"PRId64, filename, dec_ctx->frame_num);
+        pgm_save(frame->data[0], frame->linesize[0],
+                 frame->width, frame->height, buf);
     }
 }
 
-int main(int argc, char **argv) {
-    const char *filename;
+int main(int argc, char **argv)
+{
+    const char *filename, *outfilename;
     const AVCodec *codec;
+    AVCodecParserContext *parser;
     AVCodecContext *c= NULL;
-    AVCodecParserContext *parser = NULL;
-    int len, ret;
     FILE *f;
-    uint8_t inbuf[AUDIO_INBUF_SIZE + AV_INPUT_BUFFER_PADDING_SIZE];
+    AVFrame *frame;
+    uint8_t inbuf[INBUF_SIZE + AV_INPUT_BUFFER_PADDING_SIZE];
     uint8_t *data;
     size_t   data_size;
+    int ret;
+    int eof;
     AVPacket *pkt;
-    AVFrame *decoded_frame = NULL;
-    enum AVSampleFormat sfmt;
-    int n_channels = 0;
-    const char *fmt;
 
     if (argc <= 2) {
-        fprintf(stderr, "Usage: %s <input file> <output file>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <input file> <output file>\n"
+                "And check your input file is encoded by mpeg1video please.\n", argv[0]);
         exit(0);
     }
     filename    = argv[1];
-
+    outfilename = argv[2];
 
     pkt = av_packet_alloc();
+    if (!pkt)
+        exit(1);
 
-    /* find the MPEG audio decoder */
-    codec = avcodec_find_decoder(AV_CODEC_ID_MP2);
+    /* set end of buffer to 0 (this ensures that no overreading happens for damaged MPEG streams) */
+    memset(inbuf + INBUF_SIZE, 0, AV_INPUT_BUFFER_PADDING_SIZE);
+
+    /* find the MPEG-1 video decoder */
+    codec = avcodec_find_decoder(AV_CODEC_ID_MPEG1VIDEO);
     if (!codec) {
         fprintf(stderr, "Codec not found\n");
         exit(1);
@@ -119,15 +120,19 @@ int main(int argc, char **argv) {
 
     parser = av_parser_init(codec->id);
     if (!parser) {
-        fprintf(stderr, "Parser not found\n");
+        fprintf(stderr, "parser not found\n");
         exit(1);
     }
 
     c = avcodec_alloc_context3(codec);
     if (!c) {
-        fprintf(stderr, "Could not allocate audio codec context\n");
+        fprintf(stderr, "Could not allocate video codec context\n");
         exit(1);
     }
+
+    /* For some codecs, such as msmpeg4 and mpeg4, width and height
+       MUST be initialized there because this information is not
+       available in the bitstream. */
 
     /* open it */
     if (avcodec_open2(c, codec, NULL) < 0) {
@@ -141,69 +146,46 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    /* decode until eof */
-    data      = inbuf;
-    data_size = fread(inbuf, 1, AUDIO_INBUF_SIZE, f);
+    frame = av_frame_alloc();
+    if (!frame) {
+        fprintf(stderr, "Could not allocate video frame\n");
+        exit(1);
+    }
 
-    while (data_size > 0) {
-        if (!decoded_frame) {
-            if (!(decoded_frame = av_frame_alloc())) {
-                fprintf(stderr, "Could not allocate audio frame\n");
+    do {
+        /* read raw data from the input file */
+        data_size = fread(inbuf, 1, INBUF_SIZE, f);
+        if (ferror(f))
+            break;
+        eof = !data_size;
+
+        /* use the parser to split the data into frames */
+        data = inbuf;
+        while (data_size > 0 || eof) {
+            ret = av_parser_parse2(parser, c, &pkt->data, &pkt->size,
+                                   data, data_size, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
+            if (ret < 0) {
+                fprintf(stderr, "Error while parsing\n");
                 exit(1);
             }
-        }
+            data      += ret;
+            data_size -= ret;
 
-        ret = av_parser_parse2(parser, c, &pkt->data, &pkt->size,
-                               data, data_size,
-                               AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
-        if (ret < 0) {
-            fprintf(stderr, "Error while parsing\n");
-            exit(1);
+            if (pkt->size)
+                decode(c, frame, pkt, outfilename);
+            else if (eof)
+                break;
         }
-        data      += ret;
-        data_size -= ret;
-
-        if (pkt->size)
-            decode(c, pkt, decoded_frame, outfile);
-
-        if (data_size < AUDIO_REFILL_THRESH) {
-            memmove(inbuf, data, data_size);
-            data = inbuf;
-            len = fread(data + data_size, 1,
-                        AUDIO_INBUF_SIZE - data_size, f);
-            if (len > 0)
-                data_size += len;
-        }
-    }
+    } while (!eof);
 
     /* flush the decoder */
-    pkt->data = NULL;
-    pkt->size = 0;
-    decode(c, pkt, decoded_frame, outfile);
+    decode(c, frame, NULL, outfilename);
 
-    /* print output pcm infomations, because there have no metadata of pcm */
-    sfmt = c->sample_fmt;
-
-    if (av_sample_fmt_is_planar(sfmt)) {
-        const char *packed = av_get_sample_fmt_name(sfmt);
-        printf("Warning: the sample format the decoder produced is planar "
-               "(%s). This example will output the first channel only.\n",
-               packed ? packed : "?");
-        sfmt = av_get_packed_sample_fmt(sfmt);
-    }
-
-    n_channels = c->ch_layout.nb_channels;
-    if ((ret = get_format_from_sample_fmt(&fmt, sfmt)) < 0)
-        goto end;
-
-
-    end:
-        fclose(outfile);
     fclose(f);
 
-    avcodec_free_context(&c);
     av_parser_close(parser);
-    av_frame_free(&decoded_frame);
+    avcodec_free_context(&c);
+    av_frame_free(&frame);
     av_packet_free(&pkt);
 
     return 0;
