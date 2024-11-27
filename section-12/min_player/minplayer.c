@@ -50,7 +50,8 @@ int main(int argc, char** argv)
     }
 
     char *filename = argv[1];
-    // char* filename = "/home/afterloe/音乐/051.谭咏麟-朋友【玄音高端无损】.mp3";
+    // char* filename = "/home/afterloe/音乐/莫文蔚-如果没有你.flac";
+    // char* filename = "/home/afterloe/音乐/11.Free Loop - Daniel Powter【十倍音质】.mp3";
     out = fopen("c.pcm", "wb+");
 
     int ret = -1, streamIdx;
@@ -77,7 +78,9 @@ int main(int argc, char** argv)
         goto ERROR_AV;
     }
     AVStream* stream = ctx->streams[streamIdx];
-    AVCodec* codec = avcodec_find_decoder(stream->codecpar->codec_id);
+    // /usr/local/ffmpeg/bin/ffmpeg -i ~/音乐/后弦-单车恋人.flac -y -acodec pcm_f32le -f f32le -ac 2 -ar 48000 output.pcm
+    AVCodec* codec = avcodec_find_decoder(stream->codecpar->codec_id); // AV_CODEC_ID_FLAC
+    // AVCodec* codec = avcodec_find_decoder(AV_CODEC_ID_FLAC);
     if (codec == NULL)
     {
         perror("Codec not fond :");
@@ -86,7 +89,7 @@ int main(int argc, char** argv)
     AVCodecParserContext* parserCtx = av_parser_init(codec->id);
     if (parserCtx == NULL)
     {
-        perror(" Parser not found :");
+        perror("Parser not found :");
         goto ERROR_AV;
     }
     AVCodecContext* codecCtx = avcodec_alloc_context3(codec);
@@ -110,7 +113,6 @@ int main(int argc, char** argv)
         perror("open src file :");
         goto ERROR_CODEC_CTX;
     }
-    // FILE* dest = fopen("./a.pcm", "wb+");
 
     AVFrame* decoded_frame = av_frame_alloc();
     if (decoded_frame == NULL)
@@ -141,7 +143,14 @@ int main(int argc, char** argv)
 
     data = inbuf;
     size_t len = fread(inbuf, 1, AUDIO_INBUF_SIZE, fd);
+
     ret = av_parser_parse2(parserCtx, codecCtx, &pkt->data, &pkt->size, data, len, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
+    if (ret < 0 || ret == AUDIO_INBUF_SIZE)
+    {
+        fprintf(stdout, "can't parse %s \n", filename);
+        perror("parser: ");
+        goto ERROR_CODEC_CTX;
+    }
 
     SDL_AudioSpec spec;
     spec.freq = codecCtx->sample_rate;
