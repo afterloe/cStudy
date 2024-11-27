@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #include <libswresample/swresample.h>
 #include <libavcodec/avcodec.h>
@@ -42,6 +43,13 @@ extern void decode(AVCodecContext*, AVPacket*, AVFrame*);
 
 static FILE* out = NULL;
 
+int getIndex(int max)
+{
+    // 初始化随即种子
+    srand(time(NULL));
+    return rand() % max + 1;
+}
+
 int main(int argc, char** argv)
 {
     if (argc < 2)
@@ -49,7 +57,8 @@ int main(int argc, char** argv)
         help();
     }
 
-    char *filename = argv[1];
+begin:
+    char* filename = argv[getIndex(argc - 1)];
     // char* filename = "/home/afterloe/音乐/莫文蔚-如果没有你.flac";
     // char* filename = "/home/afterloe/音乐/11.Free Loop - Daniel Powter【十倍音质】.mp3";
     out = fopen("c.pcm", "wb+");
@@ -60,7 +69,7 @@ int main(int argc, char** argv)
     ret = avformat_open_input(&ctx, filename, NULL, NULL);
     if (ret < 0)
     {
-        perror("av open :");
+        fprintf(stdout, "no such file %s \n", filename);
         exit(EXIT_FAILURE);
     }
     ret = avformat_find_stream_info(ctx, NULL);
@@ -269,6 +278,8 @@ end:
     av_parser_close(parserCtx);
     av_frame_free(&decoded_frame);
     av_packet_free(&pkt);
+
+    goto begin;
 
     return EXIT_SUCCESS;
 }
