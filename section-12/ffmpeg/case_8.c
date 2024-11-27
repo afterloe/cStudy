@@ -1,6 +1,8 @@
 #include <stdio.h>
-#include "libswresample/swresample.h"
-#include "libavutil/opt.h"
+#include <libswresample/swresample.h>
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libswscale/swscale.h>
 
 int main() {
     // 输入文件和参数

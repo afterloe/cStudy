@@ -9,12 +9,12 @@
 
 #define INBUF_SIZE 4096
 
-static int get_format_from_sample_fmt(const char **fmt,
-                                      enum AVSampleFormat sample_fmt)
+static int get_format_from_sample_fmt(const char** fmt,
+    enum AVSampleFormat sample_fmt)
 {
     int i;
     struct sample_fmt_entry {
-        enum AVSampleFormat sample_fmt; const char *fmt_be, *fmt_le;
+        enum AVSampleFormat sample_fmt; const char* fmt_be, * fmt_le;
     } sample_fmt_entries[] = {
         { AV_SAMPLE_FMT_U8,  "u8",    "u8"    },
         { AV_SAMPLE_FMT_S16, "s16be", "s16le" },
@@ -26,7 +26,7 @@ static int get_format_from_sample_fmt(const char **fmt,
     *fmt = NULL;
 
     for (i = 0; i < FF_ARRAY_ELEMS(sample_fmt_entries); i++) {
-        struct sample_fmt_entry *entry = &sample_fmt_entries[i];
+        struct sample_fmt_entry* entry = &sample_fmt_entries[i];
         if (sample_fmt == entry->sample_fmt) {
             *fmt = AV_NE(entry->fmt_be, entry->fmt_le);
             return 0;
@@ -34,12 +34,12 @@ static int get_format_from_sample_fmt(const char **fmt,
     }
 
     fprintf(stderr,
-            "sample format %s is not supported as output format\n",
-            av_get_sample_fmt_name(sample_fmt));
+        "sample format %s is not supported as output format\n",
+        av_get_sample_fmt_name(sample_fmt));
     return -1;
 }
 
-extern void decode(SwrContext*, AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt);
+extern void decode(SwrContext*, AVCodecContext* dec_ctx, AVFrame* frame, AVPacket* pkt);
 
 static FILE* outfd;
 
@@ -59,7 +59,7 @@ int main(int argc, char** argv)
     const char* output = "out.pcm";
 
     outfd = fopen(output, "wb+");
-    
+
     AVFormatContext* ctx = NULL;
     int ret = avformat_open_input(&ctx, input, NULL, NULL);
 
@@ -96,17 +96,16 @@ int main(int argc, char** argv)
     outChannelLayout.nb_channels = 2;
     inChannelLayout.nb_channels = codecCtx->ch_layout.nb_channels;
 
-    swr_alloc_set_opts2(&au_convert_ctx, &outChannelLayout, AV_SAMPLE_FMT_FLT, 48000, 
-        &inChannelLayout, codecCtx->sample_fmt, codecCtx->sample_rate, 
+    swr_alloc_set_opts2(&au_convert_ctx, &outChannelLayout, AV_SAMPLE_FMT_FLT, 48000,
+        &inChannelLayout, codecCtx->sample_fmt, codecCtx->sample_rate,
         0, NULL);
-
     swr_init(au_convert_ctx);
 
     AVPacket* packet = av_packet_alloc();  // 解码前的帧 
     AVFrame* pFrame = av_frame_alloc(); // 解码后的帧 
 
-    uint8_t inbuf[INBUF_SIZE + AV_INPUT_BUFFER_PADDING_SIZE] = {0};
-    uint8_t *data;
+    uint8_t inbuf[INBUF_SIZE + AV_INPUT_BUFFER_PADDING_SIZE] = { 0 };
+    uint8_t* data;
     size_t eof, data_size;
     do {
         data_size = fread(inbuf, 1, INBUF_SIZE, fd);
@@ -115,11 +114,11 @@ int main(int argc, char** argv)
             break;
         }
         eof = !data_size;
-        
+
         data = inbuf;
-        while(data_size > 0 || eof ) {
-            ret = av_parser_parse2(parserCtx, codecCtx, &packet->data, &packet->size, 
-                    data, data_size, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
+        while (data_size > 0 || eof) {
+            ret = av_parser_parse2(parserCtx, codecCtx, &packet->data, &packet->size,
+                data, data_size, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
             if (ret < 0)
             {
                 fprintf(stderr, "Error while parsing \n");
@@ -131,22 +130,22 @@ int main(int argc, char** argv)
             if (packet->size)
             {
                 decode(au_convert_ctx, codecCtx, pFrame, packet);
-            } 
+            }
             else if (eof)
             {
                 break;
             }
         }
-    } while(!eof);
+    } while (!eof);
 
     decode(au_convert_ctx, codecCtx, pFrame, NULL);
-    
+
     enum AVSampleFormat sfmt = codecCtx->sample_fmt;
-    char * fmt;
+    char* fmt;
     get_format_from_sample_fmt(&fmt, sfmt);
     fprintf(stdout, "Play the output audio file with the command:\n"
         "/usr/local/ffmpeg/bin/ffplay -f %s -ch_layout stereo -sample_rate %d -i %s\n",
-        fmt, codecCtx->sample_rate, output); 
+        fmt, codecCtx->sample_rate, output);
 
     // 回收资源
     fclose(fd);
@@ -156,16 +155,16 @@ int main(int argc, char** argv)
     av_parser_close(parserCtx);
     av_frame_free(&decoded_frame);
     av_free(codecCtx);
-    
+
     return EXIT_SUCCESS;
 }
 
-void decode(SwrContext* au_convert_ctx, AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt)
+void decode(SwrContext* au_convert_ctx, AVCodecContext* dec_ctx, AVFrame* frame, AVPacket* pkt)
 {
     int i, ch;
     int ret, data_size;
 
-    
+
     ret = avcodec_send_packet(dec_ctx, pkt);
     if (ret < 0) {
         fprintf(stderr, "Error sending a packet for decoding\n");
@@ -178,7 +177,8 @@ void decode(SwrContext* au_convert_ctx, AVCodecContext *dec_ctx, AVFrame *frame,
         {
             return;
         }
-        else if (ret < 0) {
+        else if (ret < 0)
+        {
             fprintf(stderr, "Error during decoding\n");
             exit(1);
         }
@@ -186,10 +186,9 @@ void decode(SwrContext* au_convert_ctx, AVCodecContext *dec_ctx, AVFrame *frame,
         // int out_nb_samples = swr_get_out_samples(au_convert_ctx, frame->nb_samples);
         // int ret = swr_convert(au_convert_ctx, frame->data, out_nb_samples,
         //                       (const uint8_t **)frame->data, frame->nb_samples);
-        
+
         data_size = av_get_bytes_per_sample(dec_ctx->sample_fmt);
         if (data_size < 0) {
-            /* This should not occur, checking just for paranoia */
             fprintf(stderr, "Failed to calculate data size\n");
             exit(1);
         }
