@@ -90,60 +90,78 @@ int main(int argc, char** argv)
     AVFrame* decoded_frame = av_frame_alloc();
 
     // 初始化采样器
-    SwrContext* au_convert_ctx = NULL;
-    au_convert_ctx = swr_alloc();
-    AVChannelLayout outChannelLayout, inChannelLayout;
-    outChannelLayout.nb_channels = inChannelLayout.nb_channels = codecCtx->ch_layout.nb_channels;
-    swr_alloc_set_opts2(&au_convert_ctx, &outChannelLayout, AV_SAMPLE_FMT_FLT, 48000,
-        &inChannelLayout, codecCtx->sample_fmt, codecCtx->sample_rate,
-        0, NULL);
-    ret = swr_init(au_convert_ctx);
+    SwrContext* swr_ctx = swr_alloc();
+    // input
+    AVChannelLayout src_ch_layout = codecCtx->ch_layout;
+    int src_rate = codecCtx->sample_rate;
+    enum AVSampleFormat src_sample_fmt = codecCtx->sample_fmt;
+    // output
+    AVChannelLayout dst_ch_layout = AV_CHANNEL_LAYOUT_STEREO;
+    int dst_rate = 48000;
+    enum AVSampleFormat dst_sample_fmt = AV_SAMPLE_FMT_S16;
+
+    /* set options */
+    av_opt_set_chlayout(swr_ctx, "in_chlayout", &src_ch_layout, 0);
+    av_opt_set_int(swr_ctx, "in_sample_rate", src_rate, 0);
+    av_opt_set_sample_fmt(swr_ctx, "in_sample_fmt", src_sample_fmt, 0);
+
+    av_opt_set_chlayout(swr_ctx, "out_chlayout", &dst_ch_layout, 0);
+    av_opt_set_int(swr_ctx, "out_sample_rate", dst_rate, 0);
+    av_opt_set_sample_fmt(swr_ctx, "out_sample_fmt", dst_sample_fmt, 0);
+
+    ret = swr_init(swr_ctx);
     if (ret < 0)
     {
         fprintf(stderr, "init swr failed. \n");
         exit(1);
     }
-    
+
     const int in_nb_samples = 2048;
-    int out_nb_samples = av_rescale_rnd(in_nb_samples, 48000, codecCtx->sample_rate, AV_ROUND_UP);
+    int out_nb_samples = av_rescale_rnd(in_nb_samples, dst_rate, codecCtx->sample_rate, AV_ROUND_UP);
     AVFrame* inFrame = av_frame_alloc();
-    av_samples_alloc(inFrame->data, inFrame->linesize, inChannelLayout.nb_channels, in_nb_samples, codecCtx->sample_fmt, 1);
+    av_samples_alloc(inFrame->data, inFrame->linesize, src_ch_layout.nb_channels, in_nb_samples, codecCtx->sample_fmt, 1);
     AVFrame* outFrame = av_frame_alloc();
-    av_samples_alloc(outFrame->data, outFrame->linesize, outChannelLayout.nb_channels, out_nb_samples, AV_SAMPLE_FMT_FLT, 1);
+    av_samples_alloc(outFrame->data, outFrame->linesize, dst_ch_layout.nb_channels, out_nb_samples, dst_sample_fmt, 1);
 
     int in_spb = av_get_bytes_per_sample(codecCtx->sample_fmt);
-    int out_spb = av_get_bytes_per_sample(AV_SAMPLE_FMT_FLT);
+    int out_spb = av_get_bytes_per_sample(dst_sample_fmt);
 
     int frameCnt = 0;
     for (;;)
     {
-        int read_samples = fread(inFrame->data[0], in_spb * inChannelLayout.nb_channels, in_nb_samples, fd);
-        if (read_samples <= 0) 
+        int read_samples = fread(inFrame->data[0], in_spb * src_ch_layout.nb_channels, in_nb_samples, fd);
+        if (read_samples <= 0)
         {
             break;
         }
 
-        int dst_nb_samples = av_rescale_rnd(swr_get_delay(au_convert_ctx, codecCtx->sample_rate) + in_nb_samples,
-                                            48000,
-                                            codecCtx->sample_rate, AV_ROUND_UP);
+        int dst_nb_samples = av_rescale_rnd(swr_get_delay(swr_ctx, codecCtx->sample_rate) + in_nb_samples,
+            dst_rate,
+            codecCtx->sample_rate, AV_ROUND_UP);
         if (dst_nb_samples > out_nb_samples) {
             av_frame_unref(outFrame);
             out_nb_samples = dst_nb_samples;
-            av_samples_alloc(outFrame->data, outFrame->linesize, outChannelLayout.nb_channels, out_nb_samples, AV_SAMPLE_FMT_FLT, 1);
+            av_samples_alloc(outFrame->data, outFrame->linesize, dst_ch_layout.nb_channels, out_nb_samples, dst_sample_fmt, 1);
         }
 
-        int out_samples = swr_convert(au_convert_ctx, outFrame->data, out_nb_samples, (const uint8_t **) inFrame->data,
-                                      read_samples);
+        int out_samples = swr_convert(swr_ctx, outFrame->data, out_nb_samples, (const uint8_t**)inFrame->data,
+            read_samples);
+
         
-        if (av_sample_fmt_is_planar(AV_SAMPLE_FMT_FLT)) {
-            for (int i = 0; i < out_samples; i++) {
-                for (int c = 0; c < outChannelLayout.nb_channels; c++) {
-                    fwrite(outFrame->data[c] + i * out_spb, 1, out_spb, outfd);
-                }
-            }
-        } else {
-            fwrite(outFrame->data[0], out_spb * outChannelLayout.nb_channels, out_samples, outfd);
-        }
+
+        // if (av_sample_fmt_is_planar(dst_sample_fmt)) {
+        //     for (int i = 0; i < out_samples; i++) {
+        //         for (int c = 0; c < dst_ch_layout.nb_channels; c++) {
+        //             fwrite(outFrame->data[c] + i * out_spb, 1, out_spb, outfd);
+        //         }
+        //     }
+        // }
+        // else {
+        //     fwrite(outFrame->data[0], out_spb * dst_ch_layout.nb_channels, out_samples, outfd);
+        //     // for (int i = 0; i < out_samples; i++) {
+        //     //     fwrite(outFrame->data[0] + i * out_spb, 1, out_spb, outfd);
+        //     // }
+        // }
 
         printf("Succeed to convert frame %4d, samples [%d]->[%d]\n", frameCnt++, read_samples, out_samples);
     }
@@ -158,7 +176,7 @@ int main(int argc, char** argv)
     // 回收资源
     fclose(fd);
     fclose(outfd);
-    swr_free(&au_convert_ctx);
+    swr_free(&swr_ctx);
     avcodec_free_context(&codecCtx);
     av_parser_close(parserCtx);
     av_frame_free(&decoded_frame);

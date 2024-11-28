@@ -52,15 +52,15 @@ int getIndex(int max)
 
 int main(int argc, char** argv)
 {
-    // if (argc < 2)
-    // {
-    //     help();
-    // }
+    if (argc < 2)
+    {
+        help(argv[0]);
+    }
 
-// begin:
-    // char* filename = argv[getIndex(argc - 1)];
-    char* filename = "/home/afterloe/音乐/莫文蔚-如果没有你.flac";
-    // char* filename = "/home/afterloe/音乐/11.Free Loop - Daniel Powter【十倍音质】.mp3";
+begin:
+    char* filename = argv[getIndex(argc - 1)];
+    // char* filename = "/home/afterloe/音乐/莫文蔚-如果没有你.flac";
+    // char* filename = "/home/afterloe/音乐/019.陈慧娴-人生何处不相逢【玄音高端无损】.mp3";
     out = fopen("c.pcm", "wb+");
 
     int ret = -1, streamIdx;
@@ -132,7 +132,7 @@ int main(int argc, char** argv)
 
     printf("Input: %s \n", filename);
     printf("Format: %s \n", ctx->iformat->name);
-    printf("Duration: %lld seconds\n", ctx->duration / AV_TIME_BASE);
+    printf("Duration: %ld seconds\n", ctx->duration / AV_TIME_BASE);
 
     AVDictionaryEntry* metadata = NULL;
     while ((metadata = av_dict_get(ctx->metadata, "", metadata, AV_DICT_IGNORE_SUFFIX)))
@@ -159,7 +159,7 @@ int main(int argc, char** argv)
     spec.format = get_format(codecCtx->sample_fmt);
     spec.channels = codecCtx->ch_layout.nb_channels;
     spec.silence = 0;
-    spec.samples = 2048;
+    spec.samples = 1024;
     spec.callback = fill_audio_pcm;
     spec.userdata = parserCtx;
 
@@ -279,7 +279,7 @@ end:
     av_frame_free(&decoded_frame);
     av_packet_free(&pkt);
 
-    // goto begin;
+    goto begin;
 
     return EXIT_SUCCESS;
 }

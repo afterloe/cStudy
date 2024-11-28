@@ -1,196 +1,198 @@
+/**
+ * @file audio resampling API usage example
+ * @example resample_audio.c
+ *
+ * Generate a synthetic audio signal, and Use libswresample API to perform audio
+ * resampling. The output is written to a raw audio file to be played with
+ * ffplay.
+ */
 
-#include <stdio.h>
-#include <SDL_types.h>
-#include "SDL.h"
-
+#include <libavutil/opt.h>
+#include <libavutil/channel_layout.h>
+#include <libavutil/samplefmt.h>
 #include <libswresample/swresample.h>
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-#include <libswscale/swscale.h>
 
-#define MAX_AUDIO_FRAME_SIZE 19200
-
-static  Uint32  _audioLen = 0;
-static  Uint8* _audioPos = NULL;
-
-void allBack_fillAudioData(void* userdata, uint8_t* stream, int len)
+static int get_format_from_sample_fmt(const char **fmt,
+                                      enum AVSampleFormat sample_fmt)
 {
-    SDL_memset(stream, 0, len);
-    if (_audioLen == 0)
-    {
-        return;
+    int i;
+    struct sample_fmt_entry {
+        enum AVSampleFormat sample_fmt; const char *fmt_be, *fmt_le;
+    } sample_fmt_entries[] = {
+        { AV_SAMPLE_FMT_U8,  "u8",    "u8"    },
+        { AV_SAMPLE_FMT_S16, "s16be", "s16le" },
+        { AV_SAMPLE_FMT_S32, "s32be", "s32le" },
+        { AV_SAMPLE_FMT_FLT, "f32be", "f32le" },
+        { AV_SAMPLE_FMT_DBL, "f64be", "f64le" },
+    };
+    *fmt = NULL;
+
+    for (i = 0; i < FF_ARRAY_ELEMS(sample_fmt_entries); i++) {
+        struct sample_fmt_entry *entry = &sample_fmt_entries[i];
+        if (sample_fmt == entry->sample_fmt) {
+            *fmt = AV_NE(entry->fmt_be, entry->fmt_le);
+            return 0;
+        }
     }
-    len = (len > _audioLen ? _audioLen : len);
 
-    SDL_MixAudio(stream, _audioPos, len, SDL_MIX_MAXVOLUME);
-
-    _audioPos += len;
-    _audioLen -= len;
+    fprintf(stderr,
+            "Sample format %s not supported as output format\n",
+            av_get_sample_fmt_name(sample_fmt));
+    return AVERROR(EINVAL);
 }
 
-int main(int argc, char** argv) {
+/**
+ * Fill dst buffer with nb_samples, generated starting from t.
+ */
+static void fill_samples(double *dst, int nb_samples, int nb_channels, int sample_rate, double *t)
+{
+    int i, j;
+    double tincr = 1.0 / sample_rate, *dstp = dst;
+    const double c = 2 * M_PI * 440.0;
 
-    char* filename = "/home/afterloe/音乐/排骨教主-搬走.flac";
+    /* generate sin tone with 440Hz frequency and duplicated channels */
+    for (i = 0; i < nb_samples; i++) {
+        *dstp = sin(c * *t);
+        for (j = 1; j < nb_channels; j++)
+            dstp[j] = dstp[0];
+        dstp += nb_channels;
+        *t += tincr;
+    }
+}
 
-    AVFormatContext* ctx = NULL;
-    AVDictionaryEntry* dictionary = NULL;
-
+int main(int argc, char **argv)
+{
+    AVChannelLayout src_ch_layout = AV_CHANNEL_LAYOUT_STEREO, dst_ch_layout = AV_CHANNEL_LAYOUT_SURROUND;
+    int src_rate = 48000, dst_rate = 44100;
+    uint8_t **src_data = NULL, **dst_data = NULL;
+    int src_nb_channels = 0, dst_nb_channels = 0;
+    int src_linesize, dst_linesize;
+    int src_nb_samples = 1024, dst_nb_samples, max_dst_nb_samples;
+    enum AVSampleFormat src_sample_fmt = AV_SAMPLE_FMT_DBL, dst_sample_fmt = AV_SAMPLE_FMT_S16;
+    const char *dst_filename = NULL;
+    FILE *dst_file;
+    int dst_bufsize;
+    const char *fmt;
+    struct SwrContext *swr_ctx;
+    char buf[64];
+    double t;
     int ret;
-    ret = avformat_open_input(&ctx, filename, NULL, NULL);
-    if (EXIT_SUCCESS != ret)
-    {
-        perror("open file :");
-        exit(EXIT_FAILURE);
-    }
-    ret = avformat_find_stream_info(ctx, NULL);
-    if (EXIT_SUCCESS != ret)
-    {
-        perror("find stream :");
-        exit(EXIT_FAILURE);
-    }
 
-    printf("FILE: \t %s \n", filename);
-    printf("Format: \t %s \n", ctx->iformat->name);
-    printf("Duration: \t %lld seconds \n", ctx->duration / AV_TIME_BASE);
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s output_file\n"
+                "API example program to show how to resample an audio stream with libswresample.\n"
+                "This program generates a series of audio frames, resamples them to a specified "
+                "output format and rate and saves them to an output file named output_file.\n",
+            argv[0]);
+        exit(1);
+    }
+    dst_filename = argv[1];
 
-    printf("Music Info \n");
-    while (dictionary = av_dict_get(ctx->metadata, "", dictionary, AV_DICT_IGNORE_SUFFIX), dictionary != NULL)
-    {
-        printf("\t %s: \t %s", dictionary->key, dictionary->value);
+    dst_file = fopen(dst_filename, "wb");
+    if (!dst_file) {
+        fprintf(stderr, "Could not open destination file %s\n", dst_filename);
+        exit(1);
     }
 
-    int audioStreamIdx = av_find_best_stream(ctx, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
-    if (-1 == audioStreamIdx)
-    {
-    ERR_CLOSE:
-        perror("record:");
-        printf("can't read any info \n");
-        avformat_close_input(&ctx);
-        exit(EXIT_FAILURE);
-
-    }
-    AVStream* stream = ctx->streams[audioStreamIdx];
-    if (stream->codecpar->codec_type != AVMEDIA_TYPE_AUDIO)
-    {
-        printf("can't read any info \n");
-        goto ERR_CLOSE;
+    /* create resampler context */
+    swr_ctx = swr_alloc();
+    if (!swr_ctx) {
+        fprintf(stderr, "Could not allocate resampler context\n");
+        ret = AVERROR(ENOMEM);
+        goto end;
     }
 
-    // 获取解码器
-    AVCodec* pCodec = avcodec_find_decoder(stream->codecpar->codec_id);
-    if (NULL == pCodec)
-    {
-        printf("can't find codec \n");
-        goto ERR_CLOSE;
+    /* set options */
+    av_opt_set_chlayout(swr_ctx, "in_chlayout",    &src_ch_layout, 0);
+    av_opt_set_int(swr_ctx, "in_sample_rate",       src_rate, 0);
+    av_opt_set_sample_fmt(swr_ctx, "in_sample_fmt", src_sample_fmt, 0);
+
+    av_opt_set_chlayout(swr_ctx, "out_chlayout",    &dst_ch_layout, 0);
+    av_opt_set_int(swr_ctx, "out_sample_rate",       dst_rate, 0);
+    av_opt_set_sample_fmt(swr_ctx, "out_sample_fmt", dst_sample_fmt, 0);
+
+    /* initialize the resampling context */
+    if ((ret = swr_init(swr_ctx)) < 0) {
+        fprintf(stderr, "Failed to initialize the resampling context\n");
+        goto end;
     }
 
-    // 解码器Ctx
-    AVCodecContext* pCodecCtx = avcodec_alloc_context3(pCodec);
-    if (NULL == pCodecCtx)
-    {
-        printf("can't get codecCtx \n");
-        goto ERR_CLOSE;
+    /* allocate source and destination samples buffers */
+
+    src_nb_channels = src_ch_layout.nb_channels;
+    ret = av_samples_alloc_array_and_samples(&src_data, &src_linesize, src_nb_channels,
+                                             src_nb_samples, src_sample_fmt, 0);
+    if (ret < 0) {
+        fprintf(stderr, "Could not allocate source samples\n");
+        goto end;
     }
 
-    // 打开解码器
-    ret = avcodec_open2(pCodecCtx, pCodec, NULL);
-    if (ret < 0)
-    {
-        printf("open codec failed \n");
-        goto ERR_CLOSE;
+    /* compute the number of converted samples: buffering is avoided
+     * ensuring that the output buffer will contain at least all the
+     * converted input samples */
+    max_dst_nb_samples = dst_nb_samples =
+        av_rescale_rnd(src_nb_samples, dst_rate, src_rate, AV_ROUND_UP);
+
+    /* buffer is going to be directly written to a rawaudio file, no alignment */
+    dst_nb_channels = dst_ch_layout.nb_channels;
+    ret = av_samples_alloc_array_and_samples(&dst_data, &dst_linesize, dst_nb_channels,
+                                             dst_nb_samples, dst_sample_fmt, 0);
+    if (ret < 0) {
+        fprintf(stderr, "Could not allocate destination samples\n");
+        goto end;
     }
 
-    AVPacket* packet = av_packet_alloc();  // 解码前的帧 
-    if (!packet)
-    {
-        printf("AVPacket :");
-        goto ERR_CLOSE;
-    }
+    t = 0;
+    do {
+        /* generate synthetic audio */
+        fill_samples((double *)src_data[0], src_nb_samples, src_nb_channels, src_rate, &t);
 
-    AVFrame* pFrame = av_frame_alloc(); // 解码后的帧 
-    uint64_t out_channel_layout = AV_CH_LAYOUT_STEREO; // 输出声道
-    enum AVSampleFormat out_sample_fmt = AV_SAMPLE_FMT_S16; // 输出格式S16
-    
-    int out_nb_samples = 1024;
-    int out_sample_rate = 44100;
-
-    SDL_AudioSpec spec;
-    spec.freq = out_sample_rate;     // 指定了每秒向音频设备发送的sample数。常用的值为：11025，22050，44100。值越高质量越好。
-    spec.format = AUDIO_S16; // 每个sample的大小
-    spec.channels = 2; // 1 单通道 - 2双通道
-    spec.silence = 0;
-    spec.samples = out_nb_samples; // 这个值表示音频缓存区的大小（以sample计）。一个sample是一段大小为 format * channels 的音频数据。
-    spec.callback = allBack_fillAudioData;
-    spec.userdata = pCodecCtx;
-
-    // 步骤一：初始化音频子系统
-    ret = SDL_Init(SDL_INIT_AUDIO);
-    if (ret)
-    {
-        printf("can't init SDL \n");
-        goto ERR_CLOSE;
-    }
-
-    // 步骤二：打开音频设备
-    ret = SDL_OpenAudio(&spec, 0);
-    if (ret)
-    {
-        printf("can't open SDL \n");
-        goto ERR_CLOSE;
-    }
-
-    // 步骤三：开始播放
-    SDL_PauseAudio(0);
-
-    
-    static Uint8* audio_chunk;
-    uint8_t out_buffer;
-    int audioStream = -1;
-    int out_buffer_size = av_samples_get_buffer_size(NULL, 2, 1024, out_sample_fmt, 1);
-    
-    SwrContext* au_convert_ctx = NULL;
-    // 初始化采样器
-    au_convert_ctx = swr_alloc();
-    ret = swr_alloc_set_opts2(&au_convert_ctx,
-                      &pCodecCtx->ch_layout,
-                      out_sample_fmt,
-                      out_sample_rate,
-                      &pCodecCtx->ch_layout,
-                      pCodecCtx->sample_fmt,
-                      pCodecCtx->sample_rate,
-                      0,
-                      NULL);
-    swr_init(au_convert_ctx);
-    fflush(stdout);
-
-    while (av_read_frame(ctx, packet) >= 0) {
-        if (packet->stream_index == audioStreamIdx) {
-            avcodec_send_packet(pCodecCtx, packet);
-            while (avcodec_receive_frame(pCodecCtx, pFrame) == 0) {
-                
-
-            }
-
-            audio_chunk = (Uint8*)out_buffer;
-            _audioLen = out_buffer_size;
-            _audioPos = audio_chunk;
-
-            while (_audioLen > 0) {
-                SDL_Delay(1);//延迟播放
-            }
+        /* compute destination number of samples */
+        dst_nb_samples = av_rescale_rnd(swr_get_delay(swr_ctx, src_rate) +
+                                        src_nb_samples, dst_rate, src_rate, AV_ROUND_UP);
+        if (dst_nb_samples > max_dst_nb_samples) {
+            av_freep(&dst_data[0]);
+            ret = av_samples_alloc(dst_data, &dst_linesize, dst_nb_channels,
+                                   dst_nb_samples, dst_sample_fmt, 1);
+            if (ret < 0)
+                break;
+            max_dst_nb_samples = dst_nb_samples;
         }
-        av_packet_unref(packet);
-    }
 
-    swr_free(&au_convert_ctx);
+        /* convert to destination format */
+        ret = swr_convert(swr_ctx, dst_data, dst_nb_samples, (const uint8_t **)src_data, src_nb_samples);
+        if (ret < 0) {
+            fprintf(stderr, "Error while converting\n");
+            goto end;
+        }
+        dst_bufsize = av_samples_get_buffer_size(&dst_linesize, dst_nb_channels,
+                                                 ret, dst_sample_fmt, 1);
+        if (dst_bufsize < 0) {
+            fprintf(stderr, "Could not get sample buffer size\n");
+            goto end;
+        }
+        printf("t:%f in:%d out:%d\n", t, src_nb_samples, ret);
+        fwrite(dst_data[0], 1, dst_bufsize, dst_file);
+    } while (t < 10);
 
+    if ((ret = get_format_from_sample_fmt(&fmt, dst_sample_fmt)) < 0)
+        goto end;
+    av_channel_layout_describe(&dst_ch_layout, buf, sizeof(buf));
+    fprintf(stderr, "Resampling succeeded. Play the output file with the command:\n"
+            "ffplay -f %s -channel_layout %s -channels %d -ar %d %s\n",
+            fmt, buf, dst_nb_channels, dst_rate, dst_filename);
 
-    // 步骤五：播放完毕
-    SDL_Delay(200000); // 等音频播完
-    SDL_CloseAudio();
-    SDL_Quit();
-    printf("play is done");
-    goto ERR_CLOSE;
+end:
+    fclose(dst_file);
 
-    return 0;
+    if (src_data)
+        av_freep(&src_data[0]);
+    av_freep(&src_data);
+
+    if (dst_data)
+        av_freep(&dst_data[0]);
+    av_freep(&dst_data);
+
+    swr_free(&swr_ctx);
+    return ret < 0;
 }
