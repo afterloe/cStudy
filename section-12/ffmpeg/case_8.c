@@ -5,10 +5,11 @@
 #include <libswscale/swscale.h>
 
 int main() {
+
     // 输入文件和参数
     FILE *in_file = fopen("input.pcm", "rb");
     const int in_sample_rate = 44100;
-    AVSampleFormat in_sfmt = AV_SAMPLE_FMT_S16;
+    enum AVSampleFormat in_sfmt = AV_SAMPLE_FMT_S16;
     uint64_t in_channel_layout = AV_CH_LAYOUT_STEREO;
     int in_channels = av_get_channel_layout_nb_channels(in_channel_layout);
     const int in_nb_samples = 2048;
@@ -17,7 +18,7 @@ int main() {
     // 输出文件和参数
     FILE *out_file = fopen("output.pcm", "wb");
     const int out_sample_rate = 48000;
-    AVSampleFormat out_sfmt = AV_SAMPLE_FMT_S32P;
+    enum AVSampleFormat out_sfmt = AV_SAMPLE_FMT_S32P;
     uint64_t out_channel_layout = AV_CH_LAYOUT_STEREO;
     int out_channels = av_get_channel_layout_nb_channels(out_channel_layout);
     int out_nb_samples = av_rescale_rnd(in_nb_samples, out_sample_rate, in_sample_rate, AV_ROUND_UP);

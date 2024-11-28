@@ -93,52 +93,60 @@ int main(int argc, char** argv)
     SwrContext* au_convert_ctx = NULL;
     au_convert_ctx = swr_alloc();
     AVChannelLayout outChannelLayout, inChannelLayout;
-    outChannelLayout.nb_channels = 2;
-    inChannelLayout.nb_channels = codecCtx->ch_layout.nb_channels;
-
+    outChannelLayout.nb_channels = inChannelLayout.nb_channels = codecCtx->ch_layout.nb_channels;
     swr_alloc_set_opts2(&au_convert_ctx, &outChannelLayout, AV_SAMPLE_FMT_FLT, 48000,
         &inChannelLayout, codecCtx->sample_fmt, codecCtx->sample_rate,
         0, NULL);
-    swr_init(au_convert_ctx);
+    ret = swr_init(au_convert_ctx);
+    if (ret < 0)
+    {
+        fprintf(stderr, "init swr failed. \n");
+        exit(1);
+    }
+    
+    const int in_nb_samples = 2048;
+    int out_nb_samples = av_rescale_rnd(in_nb_samples, 48000, codecCtx->sample_rate, AV_ROUND_UP);
+    AVFrame* inFrame = av_frame_alloc();
+    av_samples_alloc(inFrame->data, inFrame->linesize, inChannelLayout.nb_channels, in_nb_samples, codecCtx->sample_fmt, 1);
+    AVFrame* outFrame = av_frame_alloc();
+    av_samples_alloc(outFrame->data, outFrame->linesize, outChannelLayout.nb_channels, out_nb_samples, AV_SAMPLE_FMT_FLT, 1);
 
-    AVPacket* packet = av_packet_alloc();  // 解码前的帧 
-    AVFrame* pFrame = av_frame_alloc(); // 解码后的帧 
+    int in_spb = av_get_bytes_per_sample(codecCtx->sample_fmt);
+    int out_spb = av_get_bytes_per_sample(AV_SAMPLE_FMT_FLT);
 
-    uint8_t inbuf[INBUF_SIZE + AV_INPUT_BUFFER_PADDING_SIZE] = { 0 };
-    uint8_t* data;
-    size_t eof, data_size;
-    do {
-        data_size = fread(inbuf, 1, INBUF_SIZE, fd);
-        if (ferror(fd))
+    int frameCnt = 0;
+    for (;;)
+    {
+        int read_samples = fread(inFrame->data[0], in_spb * inChannelLayout.nb_channels, in_nb_samples, fd);
+        if (read_samples <= 0) 
         {
             break;
         }
-        eof = !data_size;
 
-        data = inbuf;
-        while (data_size > 0 || eof) {
-            ret = av_parser_parse2(parserCtx, codecCtx, &packet->data, &packet->size,
-                data, data_size, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
-            if (ret < 0)
-            {
-                fprintf(stderr, "Error while parsing \n");
-                exit(EXIT_FAILURE);
-            }
-
-            data += ret;
-            data_size -= ret;
-            if (packet->size)
-            {
-                decode(au_convert_ctx, codecCtx, pFrame, packet);
-            }
-            else if (eof)
-            {
-                break;
-            }
+        int dst_nb_samples = av_rescale_rnd(swr_get_delay(au_convert_ctx, codecCtx->sample_rate) + in_nb_samples,
+                                            48000,
+                                            codecCtx->sample_rate, AV_ROUND_UP);
+        if (dst_nb_samples > out_nb_samples) {
+            av_frame_unref(outFrame);
+            out_nb_samples = dst_nb_samples;
+            av_samples_alloc(outFrame->data, outFrame->linesize, outChannelLayout.nb_channels, out_nb_samples, AV_SAMPLE_FMT_FLT, 1);
         }
-    } while (!eof);
 
-    decode(au_convert_ctx, codecCtx, pFrame, NULL);
+        int out_samples = swr_convert(au_convert_ctx, outFrame->data, out_nb_samples, (const uint8_t **) inFrame->data,
+                                      read_samples);
+        
+        if (av_sample_fmt_is_planar(AV_SAMPLE_FMT_FLT)) {
+            for (int i = 0; i < out_samples; i++) {
+                for (int c = 0; c < outChannelLayout.nb_channels; c++) {
+                    fwrite(outFrame->data[c] + i * out_spb, 1, out_spb, outfd);
+                }
+            }
+        } else {
+            fwrite(outFrame->data[0], out_spb * outChannelLayout.nb_channels, out_samples, outfd);
+        }
+
+        printf("Succeed to convert frame %4d, samples [%d]->[%d]\n", frameCnt++, read_samples, out_samples);
+    }
 
     enum AVSampleFormat sfmt = codecCtx->sample_fmt;
     char* fmt;

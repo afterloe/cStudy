@@ -52,14 +52,14 @@ int getIndex(int max)
 
 int main(int argc, char** argv)
 {
-    if (argc < 2)
-    {
-        help();
-    }
+    // if (argc < 2)
+    // {
+    //     help();
+    // }
 
-begin:
-    char* filename = argv[getIndex(argc - 1)];
-    // char* filename = "/home/afterloe/音乐/莫文蔚-如果没有你.flac";
+// begin:
+    // char* filename = argv[getIndex(argc - 1)];
+    char* filename = "/home/afterloe/音乐/莫文蔚-如果没有你.flac";
     // char* filename = "/home/afterloe/音乐/11.Free Loop - Daniel Powter【十倍音质】.mp3";
     out = fopen("c.pcm", "wb+");
 
@@ -152,21 +152,14 @@ begin:
 
     data = inbuf;
     size_t len = fread(inbuf, 1, AUDIO_INBUF_SIZE, fd);
-
-    ret = av_parser_parse2(parserCtx, codecCtx, &pkt->data, &pkt->size, data, len, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
-    if (ret < 0 || ret == AUDIO_INBUF_SIZE)
-    {
-        fprintf(stdout, "can't parse %s \n", filename);
-        perror("parser: ");
-        goto ERROR_CODEC_CTX;
-    }
+    avcodec_parameters_to_context(codecCtx, stream->codecpar);
 
     SDL_AudioSpec spec;
     spec.freq = codecCtx->sample_rate;
     spec.format = get_format(codecCtx->sample_fmt);
     spec.channels = codecCtx->ch_layout.nb_channels;
     spec.silence = 0;
-    spec.samples = 1024;
+    spec.samples = 2048;
     spec.callback = fill_audio_pcm;
     spec.userdata = parserCtx;
 
@@ -185,6 +178,14 @@ begin:
     }
     s_audio_buf = calloc(1, PCM_BUFFER_SIZE);
     SDL_PauseAudio(0);
+
+    ret = av_parser_parse2(parserCtx, codecCtx, &pkt->data, &pkt->size, data, len, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
+    if (ret < 0)
+    {
+        fprintf(stdout, "can't parse %s \n", filename);
+        perror("parser: ");
+        goto ERROR_CODEC_CTX;
+    }
 
     do
     {
@@ -220,6 +221,19 @@ begin:
     decode(codecCtx, pkt, decoded_frame);
 
     enum AVSampleFormat sfmt = codecCtx->sample_fmt;
+    if (av_sample_fmt_is_planar(sfmt)) {
+        const char* packed = av_get_sample_fmt_name(sfmt);
+        printf("Warning: the sample format the decoder produced is planar "
+            "(%s). This example will output the first channel only.\n",
+            packed ? packed : "?");
+        sfmt = av_get_packed_sample_fmt(sfmt);
+    }
+    const char* fmt;
+    if ((ret = get_format_from_sample_fmt(&fmt, sfmt)) < 0) {
+        goto end;
+    }
+    fprintf(stdout, "fmt: %s \n", fmt);
+    fprintf(stdout, "sample_rate: %ld \n", codecCtx->sample_rate);
 
     fseek(out, 0, SEEK_END);
     size_t file_size = ftell(out);
@@ -252,20 +266,6 @@ begin:
 
     fclose(out);
 
-    if (av_sample_fmt_is_planar(sfmt)) {
-        const char* packed = av_get_sample_fmt_name(sfmt);
-        printf("Warning: the sample format the decoder produced is planar "
-            "(%s). This example will output the first channel only.\n",
-            packed ? packed : "?");
-        sfmt = av_get_packed_sample_fmt(sfmt);
-    }
-
-    const char* fmt;
-    if ((ret = get_format_from_sample_fmt(&fmt, sfmt)) < 0) {
-        goto end;
-    }
-    printf("%s \n", fmt);
-
     SDL_CloseAudio();
     SDL_Quit();
 
@@ -279,7 +279,7 @@ end:
     av_frame_free(&decoded_frame);
     av_packet_free(&pkt);
 
-    goto begin;
+    // goto begin;
 
     return EXIT_SUCCESS;
 }
@@ -345,13 +345,22 @@ void decode(AVCodecContext* dec_ctx, AVPacket* pkt, AVFrame* frame)
             fprintf(stderr, "Failed to calculate data size\n");
             exit(1);
         }
-        for (i = 0; i < frame->nb_samples; i++)
-        {
-            for (ch = 0; ch < dec_ctx->ch_layout.nb_channels; ch++) {
-                fwrite(frame->data[ch] + data_size * i, 1, data_size, out);
+
+        if (av_sample_fmt_is_planar(dec_ctx->sample_fmt)) {
+            for (i = 0; i < frame->nb_samples; i++)
+            {
+                for (ch = 0; ch < dec_ctx->ch_layout.nb_channels; ch++) {
+                    fwrite(frame->data[ch] + data_size * i, 1, data_size, out);
+                }
             }
         }
+        else {
+            for (i = 0; i < frame->nb_samples; i++)
+            {
+                fwrite(frame->data[0]+ data_size * i, 1, data_size, out);
+            }
 
+        }
     }
 }
 
@@ -374,9 +383,9 @@ void fill_audio_pcm(void* udata, Uint8* stream, int len)
     s_audio_pos += len;  // 移动缓存指针（当前pos）
 }
 
-void help()
+void help(const char* appname)
 {
-    printf("usage minplayer <file> \n");
+    printf("usage %s <file> \n", appname);
     printf("supper file *.mp3 \n");
     exit(EXIT_SUCCESS);
 }
