@@ -1,3 +1,6 @@
+/**
+ * cpp invoke ffmpeg
+ */
 #include <iostream>
 
 extern "C" {

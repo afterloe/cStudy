@@ -1,232 +1,123 @@
+/**
+ * FFmpeg + SDL play *.pcm
+ */
+#include <fcntl.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
+#include <SDL_types.h>
+#include "SDL.h"
 
-#include <libswresample/swresample.h>
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-#include <libswscale/swscale.h>
+// 每次读取2帧数据, 以1024个采样点一帧 2通道 16bit采样点为例
+#define PCM_BUFFER_SIZE (2 * 1024 * 2 * 2)
 
-#define INBUF_SIZE 4096
+static Uint8* s_audio_buf = NULL;   // 存储当前读取的两帧数据
+static Uint8* s_audio_pos = NULL;   // 目前读取的位置
+static Uint8* s_audio_end = NULL;   // 缓存结束位置
 
-static int get_format_from_sample_fmt(const char** fmt,
-    enum AVSampleFormat sample_fmt)
+//音频设备回调函数
+void fill_audio_pcm(void* udata, Uint8* stream, int len)
 {
-    int i;
-    struct sample_fmt_entry {
-        enum AVSampleFormat sample_fmt; const char* fmt_be, * fmt_le;
-    } sample_fmt_entries[] = {
-        { AV_SAMPLE_FMT_U8,  "u8",    "u8"    },
-        { AV_SAMPLE_FMT_S16, "s16be", "s16le" },
-        { AV_SAMPLE_FMT_S32, "s32be", "s32le" },
-        { AV_SAMPLE_FMT_FLT, "f32be", "f32le" },
-        { AV_SAMPLE_FMT_FLTP, "f32be", "f32le"},
-        { AV_SAMPLE_FMT_DBL, "f64be", "f64le" },
-    };
-    *fmt = NULL;
-
-    for (i = 0; i < FF_ARRAY_ELEMS(sample_fmt_entries); i++) {
-        struct sample_fmt_entry* entry = &sample_fmt_entries[i];
-        if (sample_fmt == entry->sample_fmt) {
-            *fmt = AV_NE(entry->fmt_be, entry->fmt_le);
-            return 0;
-        }
+    // udata: 用户自定义数据
+    SDL_memset(stream, 0, len);
+    if (s_audio_pos >= s_audio_end)            // （当前两帧）数据读取完毕
+    {
+        return;
     }
 
-    fprintf(stderr,
-        "sample format %s is not supported as output format\n",
-        av_get_sample_fmt_name(sample_fmt));
-    return -1;
+    // 数据够了就读预设长度，数据不够就只读部分（不够的时候剩多少就读取多少）
+    int remain_buffer_len = s_audio_end - s_audio_pos;
+    len = (len < remain_buffer_len) ? len : remain_buffer_len;
+    // 设置混音
+    SDL_MixAudio(stream, s_audio_pos, len, SDL_MIX_MAXVOLUME);  // 音量的值 SDL_MIX_MAXVOLUME 128
+
+    s_audio_pos += len;  // 移动缓存指针（当前pos）
 }
-
-extern void decode(SwrContext*, AVCodecContext* dec_ctx, AVFrame* frame, AVPacket* pkt);
-
-static FILE* outfd;
 
 int main(int argc, char** argv)
 {
-    // if (argc < 2)
-    // {
-    //     fprintf(stderr, "usage <%s> <input> <output> \n", argv[0]);
-    //     return EXIT_FAILURE;
-    // }
+    char* filename = argv[1];
 
-    // const char* input = argv[1];
-    // const char* output = argv[2];
+    int ret = -1;
+    // int out_nb_samples = 1024;
+    // int out_sample_rate = 44100;
 
-    // const char* input = "/home/afterloe/音乐/014-谭咏麟 - 讲不出再见.mp3";
-    const char* input = "/home/afterloe/音乐/周杰伦-你听得到.flac";
-    const char* output = "out.pcm";
+    SDL_AudioSpec spec;
+    spec.freq = 48000;     // 指定了每秒向音频设备发送的sample数。常用的值为：11025，22050，44100。值越高质量越好。
+    spec.format = AUDIO_F32LSB; // 每个sample的大小
+    spec.channels = 2; // 1 单通道 - 2双通道
+    spec.silence = 0;
+    spec.samples = 1024; // 这个值表示音频缓存区的大小（以sample计）。一个sample是一段大小为 format * channels 的音频数据。
+    spec.callback = fill_audio_pcm;
+    spec.userdata = NULL;
 
-    outfd = fopen(output, "wb+");
-
-    AVFormatContext* ctx = NULL;
-    int ret = avformat_open_input(&ctx, input, NULL, NULL);
-
-    avformat_find_stream_info(ctx, NULL);
-    int streamIdx = av_find_best_stream(ctx, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
-
-    // media file info
-    printf("Input: %s \n", input);
-    printf("Format: %s \n", ctx->iformat->name);
-    printf("Duration: %lld seconds\n", ctx->duration / AV_TIME_BASE);
-    AVDictionaryEntry* metadata = NULL;
-    while ((metadata = av_dict_get(ctx->metadata, "", metadata, AV_DICT_IGNORE_SUFFIX)))
+    // 步骤一：初始化音频子系统
+    ret = SDL_Init(SDL_INIT_AUDIO);
+    if (ret)
     {
-        printf("%s=%s\n", metadata->key, metadata->value);
+        printf("can't init SDL \n");
+        goto ERR_CLOSE;
     }
 
-    // begin decode
-    AVStream* stream = ctx->streams[streamIdx];
-    AVCodec* codec = avcodec_find_decoder(stream->codecpar->codec_id);
-    AVCodecParserContext* parserCtx = av_parser_init(codec->id);
-    AVCodecContext* codecCtx = avcodec_alloc_context3(codec);
-    avcodec_open2(codecCtx, codec, NULL);
-
-    // 将信息复制到codecCtx内
-    avcodec_parameters_to_context(codecCtx, stream->codecpar);
-
-    FILE* fd = fopen(input, "rb");
-    AVFrame* decoded_frame = av_frame_alloc();
-
-    // 初始化采样器
-    SwrContext* swr_ctx = swr_alloc();
-    // input
-    AVChannelLayout src_ch_layout = codecCtx->ch_layout;
-    int src_rate = codecCtx->sample_rate;
-    enum AVSampleFormat src_sample_fmt = codecCtx->sample_fmt;
-    // output
-    AVChannelLayout dst_ch_layout = AV_CHANNEL_LAYOUT_STEREO;
-    int dst_rate = 48000;
-    enum AVSampleFormat dst_sample_fmt = AV_SAMPLE_FMT_S16;
-
-    /* set options */
-    av_opt_set_chlayout(swr_ctx, "in_chlayout", &src_ch_layout, 0);
-    av_opt_set_int(swr_ctx, "in_sample_rate", src_rate, 0);
-    av_opt_set_sample_fmt(swr_ctx, "in_sample_fmt", src_sample_fmt, 0);
-
-    av_opt_set_chlayout(swr_ctx, "out_chlayout", &dst_ch_layout, 0);
-    av_opt_set_int(swr_ctx, "out_sample_rate", dst_rate, 0);
-    av_opt_set_sample_fmt(swr_ctx, "out_sample_fmt", dst_sample_fmt, 0);
-
-    ret = swr_init(swr_ctx);
+    // 步骤二：打开音频设备
+    ret = SDL_OpenAudio(&spec, 0);
     if (ret < 0)
     {
-        fprintf(stderr, "init swr failed. \n");
-        exit(1);
+        printf("can't open SDL \n");
+        goto ERR_CLOSE;
     }
+    s_audio_buf = malloc(PCM_BUFFER_SIZE);
 
-    const int in_nb_samples = 2048;
-    int out_nb_samples = av_rescale_rnd(in_nb_samples, dst_rate, codecCtx->sample_rate, AV_ROUND_UP);
-    AVFrame* inFrame = av_frame_alloc();
-    av_samples_alloc(inFrame->data, inFrame->linesize, src_ch_layout.nb_channels, in_nb_samples, codecCtx->sample_fmt, 1);
-    AVFrame* outFrame = av_frame_alloc();
-    av_samples_alloc(outFrame->data, outFrame->linesize, dst_ch_layout.nb_channels, out_nb_samples, dst_sample_fmt, 1);
+    // 步骤三：开始播放
+    SDL_PauseAudio(0);
 
-    int in_spb = av_get_bytes_per_sample(codecCtx->sample_fmt);
-    int out_spb = av_get_bytes_per_sample(dst_sample_fmt);
-
-    int frameCnt = 0;
-    for (;;)
+    size_t read_buffer_len = 0;
+    FILE* src = fopen(filename, "rb");
+    if (src == NULL)
     {
-        int read_samples = fread(inFrame->data[0], in_spb * src_ch_layout.nb_channels, in_nb_samples, fd);
-        if (read_samples <= 0)
+        printf("read file \n");
+        goto ERR_CLOSE;
+    }
+    int data_count = 0;
+    while (1)
+    {
+        read_buffer_len = fread(s_audio_buf, 1, PCM_BUFFER_SIZE, src);
+        if (0 == read_buffer_len)
         {
             break;
         }
+        data_count += read_buffer_len;
 
-        int dst_nb_samples = av_rescale_rnd(swr_get_delay(swr_ctx, codecCtx->sample_rate) + in_nb_samples,
-            dst_rate,
-            codecCtx->sample_rate, AV_ROUND_UP);
-        if (dst_nb_samples > out_nb_samples) {
-            av_frame_unref(outFrame);
-            out_nb_samples = dst_nb_samples;
-            av_samples_alloc(outFrame->data, outFrame->linesize, dst_ch_layout.nb_channels, out_nb_samples, dst_sample_fmt, 1);
+        printf("read %10d KB \n", read_buffer_len / 1024);
+        //将当前光标往上移动一行
+        printf("\033[A");
+        //删除光标后面的内容
+        printf("\033[K");
+
+        s_audio_end = s_audio_buf + read_buffer_len;
+        s_audio_pos = s_audio_buf;
+
+        while (s_audio_pos < s_audio_end)
+        {
+            SDL_Delay(10);
         }
 
-        int out_samples = swr_convert(swr_ctx, outFrame->data, out_nb_samples, (const uint8_t**)inFrame->data,
-            read_samples);
-
-        
-
-        // if (av_sample_fmt_is_planar(dst_sample_fmt)) {
-        //     for (int i = 0; i < out_samples; i++) {
-        //         for (int c = 0; c < dst_ch_layout.nb_channels; c++) {
-        //             fwrite(outFrame->data[c] + i * out_spb, 1, out_spb, outfd);
-        //         }
-        //     }
-        // }
-        // else {
-        //     fwrite(outFrame->data[0], out_spb * dst_ch_layout.nb_channels, out_samples, outfd);
-        //     // for (int i = 0; i < out_samples; i++) {
-        //     //     fwrite(outFrame->data[0] + i * out_spb, 1, out_spb, outfd);
-        //     // }
-        // }
-
-        printf("Succeed to convert frame %4d, samples [%d]->[%d]\n", frameCnt++, read_samples, out_samples);
     }
 
-    enum AVSampleFormat sfmt = codecCtx->sample_fmt;
-    char* fmt;
-    get_format_from_sample_fmt(&fmt, sfmt);
-    fprintf(stdout, "Play the output audio file with the command:\n"
-        "/usr/local/ffmpeg/bin/ffplay -f %s -ch_layout stereo -sample_rate %d -i %s\n",
-        fmt, codecCtx->sample_rate, output);
+    printf("play finish \n");
 
-    // 回收资源
-    fclose(fd);
-    fclose(outfd);
-    swr_free(&swr_ctx);
-    avcodec_free_context(&codecCtx);
-    av_parser_close(parserCtx);
-    av_frame_free(&decoded_frame);
-    av_free(codecCtx);
+    if (s_audio_buf)
+    {
+        free(s_audio_buf);
+    }
+
+    SDL_CloseAudio();
+    fclose(src);
+    SDL_Quit();
+
+
+ERR_CLOSE:
+    perror("record:");
+    exit(EXIT_FAILURE);
 
     return EXIT_SUCCESS;
-}
-
-void decode(SwrContext* au_convert_ctx, AVCodecContext* dec_ctx, AVFrame* frame, AVPacket* pkt)
-{
-    int i, ch;
-    int ret, data_size;
-
-
-    ret = avcodec_send_packet(dec_ctx, pkt);
-    if (ret < 0) {
-        fprintf(stderr, "Error sending a packet for decoding\n");
-        exit(1);
-    }
-
-    while (ret >= 0) {
-        ret = avcodec_receive_frame(dec_ctx, frame);
-        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
-        {
-            return;
-        }
-        else if (ret < 0)
-        {
-            fprintf(stderr, "Error during decoding\n");
-            exit(1);
-        }
-
-        // int out_nb_samples = swr_get_out_samples(au_convert_ctx, frame->nb_samples);
-        // int ret = swr_convert(au_convert_ctx, frame->data, out_nb_samples,
-        //                       (const uint8_t **)frame->data, frame->nb_samples);
-
-        data_size = av_get_bytes_per_sample(dec_ctx->sample_fmt);
-        if (data_size < 0) {
-            fprintf(stderr, "Failed to calculate data size\n");
-            exit(1);
-        }
-        for (i = 0; i < frame->nb_samples; i++)
-        {
-            for (ch = 0; ch < dec_ctx->ch_layout.nb_channels; ch++) {
-                if (frame->data[ch]) {
-                    fwrite(frame->data[ch] + data_size * i, 1, data_size, outfd);
-                }
-            }
-        }
-    }
-
-    av_packet_unref(pkt);
 }
