@@ -1,5 +1,5 @@
 /**
- * ffmpeg + SDL play *.flac
+ * ffmpeg + SDL play *.mp3
  */
 #include <stdio.h>
 #include <stdlib.h>

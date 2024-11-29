@@ -15,7 +15,7 @@
 #include "include/minplayer.h"
 
 // 每次读取2帧数据, 以1024个采样点一帧 2通道 16bit采样点为例
-#define PCM_BUFFER_SIZE 2 * 4608 * 2 * 2
+#define PCM_BUFFER_SIZE 2 * 1024 * 2 * 2
 
 #define AUDIO_INBUF_SIZE 20480
 #define AUDIO_REFILL_THRESH 4096
@@ -40,9 +40,8 @@ struct sample_fmt_entry {
 extern void fill_audio_pcm(void*, Uint8*, int);
 extern int get_format_from_sample_fmt(const char**, enum AVSampleFormat);
 extern SDL_AudioFormat get_format(enum AVSampleFormat sample_fmt);
-extern void decode(AVCodecContext*, AVPacket*, AVFrame*);
-
-static FILE* out = NULL;
+extern void decode_mp3(AVCodecContext*, AVPacket*, AVFrame*, FILE*);
+extern void playmusic(int rate, SDL_AudioFormat sdl_fmt, AVChannelLayout ch_layout);
 
 int getIndex(int max)
 {
@@ -51,267 +50,114 @@ int getIndex(int max)
     return rand() % max + 1;
 }
 
-int main(int argc, char** argv)
+void get_media_info(AVFormatContext** ptr, char* filename)
 {
-    // if (argc < 2)
-    // {
-    //     help(argv[0]);
-    // }
-
-// begin:
-    // char* filename = argv[getIndex(argc - 1)];
-    char* filename = "/home/afterloe/音乐/莫文蔚-如果没有你.flac";
-    // char* filename = "/home/afterloe/音乐/019.陈慧娴-人生何处不相逢【玄音高端无损】.mp3";
-    out = fopen("c.pcm", "wb+");
-
-    int ret = -1, streamIdx;
-    AVPacket* pkt = av_packet_alloc();
-    AVFormatContext* ctx = NULL;
-    ret = avformat_open_input(&ctx, filename, NULL, NULL);
+    int ret = avformat_open_input(ptr, filename, NULL, NULL);
     if (ret < 0)
     {
-        fprintf(stdout, "no such file %s \n", filename);
-        exit(EXIT_FAILURE);
+        fprintf(stderr, "can't open this. \n");
+        exit(1);
     }
-    ret = avformat_find_stream_info(ctx, NULL);
-    if (ret < 0)
-    {
-    ERROR_AV:
-        perror("av find stream :");
-        avformat_close_input(&ctx);
-        exit(EXIT_FAILURE);
-    }
-    streamIdx = av_find_best_stream(ctx, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
-    if (ret < 0)
-    {
-        perror("no such this stream :");
-        goto ERROR_AV;
-    }
-    AVStream* stream = ctx->streams[streamIdx];
-    // /usr/local/ffmpeg/bin/ffmpeg -i ~/音乐/后弦-单车恋人.flac -y -acodec pcm_f32le -f f32le -ac 2 -ar 48000 output.pcm
-    AVCodec* codec = avcodec_find_decoder(stream->codecpar->codec_id); // AV_CODEC_ID_FLAC
-    // AVCodec* codec = avcodec_find_decoder(AV_CODEC_ID_FLAC);
-    if (codec == NULL)
-    {
-        perror("Codec not fond :");
-        goto ERROR_AV;
-    }
-    AVCodecParserContext* parserCtx = av_parser_init(codec->id);
-    if (parserCtx == NULL)
-    {
-        perror("Parser not found :");
-        goto ERROR_AV;
-    }
-    AVCodecContext* codecCtx = avcodec_alloc_context3(codec);
-    if (codecCtx == NULL)
-    {
-        perror("allocate audio codec context :");
-        goto ERROR_AV;
-    }
-    ret = avcodec_open2(codecCtx, codec, NULL);
-    if (ret < 0)
-    {
-        perror("Not open codec :");
-    ERROR_CODEC_CTX:
-        av_free(codecCtx);
-        goto ERROR_AV;
-    }
+    AVFormatContext* ctx = *ptr;
+    avformat_find_stream_info(ctx, NULL);
 
-    FILE* fd = fopen(filename, "rb");
-    if (fd < 0)
-    {
-        perror("open src file :");
-        goto ERROR_CODEC_CTX;
-    }
-
-    AVFrame* decoded_frame = av_frame_alloc();
-    if (decoded_frame == NULL)
-    {
-        perror("allocate audio frame :");
-        goto ERROR_CODEC_CTX;
-    }
-
-    printf("Input: %s \n", filename);
-    printf("Format: %s \n", ctx->iformat->name);
-    printf("Duration: %ld seconds\n", ctx->duration / AV_TIME_BASE);
-
+    // media file info
+    fprintf(stdout, "Input: %s \n", filename);
+    fprintf(stdout, "Format: %s \n", ctx->iformat->name);
+    fprintf(stdout, "Duration: %ld seconds\n", ctx->duration / AV_TIME_BASE);
     AVDictionaryEntry* metadata = NULL;
     while ((metadata = av_dict_get(ctx->metadata, "", metadata, AV_DICT_IGNORE_SUFFIX)))
     {
-        printf("%s=%s\n", metadata->key, metadata->value);
+        fprintf(stdout, "%s=%s\n", metadata->key, metadata->value);
     }
+}
 
-    uint8_t inbuf[AUDIO_INBUF_SIZE + AV_INPUT_BUFFER_PADDING_SIZE];
-    uint8_t* data;
+void to_pcm(AVFormatContext* ctx, char* filename, AVCodecContext** codecCtxPtr)
+{
+    FILE* tmpfd = fopen(".tmp.pcm", "wb");
+    int ret;
+    int streamIdx = av_find_best_stream(ctx, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
+
+    // begin decode
+    AVStream* stream = ctx->streams[streamIdx];
+    AVCodec* codec = avcodec_find_decoder(stream->codecpar->codec_id);
+    AVCodecParserContext* parserCtx = av_parser_init(codec->id);
+    AVCodecContext* codecCtx = avcodec_alloc_context3(codec);
+    *codecCtxPtr = codecCtx;
+    avcodec_open2(codecCtx, codec, NULL);
+
+    // 将信息复制到codecCtx内
+    avcodec_parameters_to_context(codecCtx, stream->codecpar);
+    FILE* src = fopen(filename, "rb");
     if (NULL != strstr(filename, ".mp3"))
     {
         uint8_t mp3_header[10] = { 0 };
-        fread(mp3_header, 1, 10, fd);
+        fread(mp3_header, 1, 10, src);
         long frame_size = (mp3_header[6] & 0xff) << 21 | (mp3_header[7] & 0xff) << 14 | (mp3_header[8] & 0xff) << 7 | mp3_header[9] & 0xff;
-        fseek(fd, frame_size + 10, SEEK_SET);
+        fseek(src, frame_size + 10, SEEK_SET);
     }
 
+    uint8_t* data;
+    uint8_t inbuf[AUDIO_INBUF_SIZE + AV_INPUT_BUFFER_PADDING_SIZE] = { 0 };
     data = inbuf;
-    size_t len = fread(inbuf, 1, AUDIO_INBUF_SIZE, fd);
-    avcodec_parameters_to_context(codecCtx, stream->codecpar);
+    size_t data_size = fread(inbuf, 1, AUDIO_INBUF_SIZE, src);
+    AVPacket* pkt = av_packet_alloc();
+    size_t len;
+    AVFrame* src_frame = av_frame_alloc();
 
-    SDL_AudioSpec spec;
-    spec.freq = codecCtx->sample_rate;
-    spec.format = get_format(codecCtx->sample_fmt);
-    spec.channels = codecCtx->ch_layout.nb_channels;
-    spec.silence = 0;
-    spec.samples = 1024;
-    spec.callback = fill_audio_pcm;
-    spec.userdata = parserCtx;
-
-    ret = SDL_Init(SDL_INIT_AUDIO);
-    if (ret)
-    {
-        perror("can't init SDL \n");
-        goto ERROR_CODEC_CTX;
-    }
-
-    ret = SDL_OpenAudio(&spec, 0);
-    if (ret < 0)
-    {
-        perror("can't open SDL \n");
-        goto ERROR_CODEC_CTX;
-    }
-    s_audio_buf = calloc(1, PCM_BUFFER_SIZE);
-    SDL_PauseAudio(0);
-
-    do
-    {
-        ret = av_parser_parse2(parserCtx, codecCtx, &pkt->data, &pkt->size, data, len, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
-        if (ret < 0)
-        {
-            perror("Error while parsing \n");
-            goto ERROR_CODEC_CTX;
-        }
-
-        data += ret;
-        len -= ret;
-
-        if (pkt->size)
-        {
-            decode(codecCtx, pkt, decoded_frame);
-        }
-
-        if (len < AUDIO_REFILL_THRESH)
-        {
-            memmove(inbuf, data, len);
-            data = inbuf;
-            int size = fread(data + len, 1, AUDIO_INBUF_SIZE - len, fd);
-            if (size > 0)
-            {
-                len += size;
+    while (data_size > 0) {
+        if (!src_frame) {
+            if (!(src_frame = av_frame_alloc())) {
+                fprintf(stderr, "Could not allocate audio frame\n");
+                exit(1);
             }
         }
-    } while (len > 0);
 
+        ret = av_parser_parse2(parserCtx, codecCtx, &pkt->data, &pkt->size,
+            data, data_size,
+            AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
+        if (ret < 0) {
+            fprintf(stderr, "Error while parsing\n");
+            exit(1);
+        }
+        data += ret;
+        data_size -= ret;
+
+        fprintf(stdout, "\033[A");
+        fprintf(stdout, "\033[K");
+        fprintf(stdout, "read %ld b \n", data_size);
+
+        if (pkt->size) {
+            decode_mp3(codecCtx, pkt, src_frame, tmpfd);
+        }
+
+
+        if (data_size < AUDIO_REFILL_THRESH) {
+            memmove(inbuf, data, data_size);
+            data = inbuf;
+            len = fread(data + data_size, 1, AUDIO_INBUF_SIZE - data_size, src);
+            if (len > 0)
+                data_size += len;
+        }
+    }
+
+    /* flush the decoder */
     pkt->data = NULL;
     pkt->size = 0;
-    decode(codecCtx, pkt, decoded_frame);
+    decode_mp3(codecCtx, pkt, src_frame, tmpfd);
 
-    enum AVSampleFormat sfmt = codecCtx->sample_fmt;
-    if (av_sample_fmt_is_planar(sfmt)) {
-        const char* packed = av_get_sample_fmt_name(sfmt);
-        printf("Warning: the sample format the decoder produced is planar "
-            "(%s). This example will output the first channel only.\n",
-            packed ? packed : "?");
-        sfmt = av_get_packed_sample_fmt(sfmt);
-    }
-    const char* fmt;
-    if ((ret = get_format_from_sample_fmt(&fmt, sfmt)) < 0) {
-        goto end;
-    }
-    fprintf(stdout, "fmt: %s \n", fmt);
-    fprintf(stdout, "sample_rate: %ld \n", codecCtx->sample_rate);
-
-    fseek(out, 0, SEEK_END);
-    size_t file_size = ftell(out);
-    fseek(out, 0, SEEK_SET);
-    size_t read_buffer_len, data_count = 0;
-    while (1)
-    {
-        read_buffer_len = fread(s_audio_buf, 1, PCM_BUFFER_SIZE, out);
-        if (0 == read_buffer_len)
-        {
-            break;
-        }
-        data_count += read_buffer_len;
-
-        printf("read %ld of %ld - %.2f %% \n", data_count, file_size, ((float)data_count / file_size) * 100);
-        //将当前光标往上移动一行
-        printf("\033[A");
-        //删除光标后面的内容
-        printf("\033[K");
-
-        s_audio_end = s_audio_buf + read_buffer_len;
-        s_audio_pos = s_audio_buf;
-
-        while (s_audio_pos < s_audio_end)
-        {
-            SDL_Delay(10);
-        }
-
-    }
-
-    fclose(out);
-
-    SDL_CloseAudio();
-    SDL_Quit();
-
-end:
-    if (fd > 0)
-    {
-        fclose(fd);
-    }
+    // 回收资源
+    fclose(src);
+    fclose(tmpfd);
+    // swr_free(&swr_ctx);
     avcodec_free_context(&codecCtx);
     av_parser_close(parserCtx);
-    av_frame_free(&decoded_frame);
-    av_packet_free(&pkt);
-
-    // goto begin;
-
-    return EXIT_SUCCESS;
+    av_frame_free(&src_frame);
+    av_free(codecCtx);
+    free(s_audio_buf);
 }
 
-SDL_AudioFormat get_format(enum AVSampleFormat sample_fmt)
-{
-    for (int i = 0; i < FF_ARRAY_ELEMS(sample_fmt_entries); i++) {
-        struct sample_fmt_entry* entry = &sample_fmt_entries[i];
-        if (sample_fmt == entry->sample_fmt) {
-            return entry->code;
-        }
-    }
-
-    fprintf(stderr,
-        "sample format %s is not supported as output format\n",
-        av_get_sample_fmt_name(sample_fmt));
-    return -1;
-}
-
-int get_format_from_sample_fmt(const char** fmt, enum AVSampleFormat sample_fmt)
-{
-    int i; *fmt = NULL;
-
-    for (i = 0; i < FF_ARRAY_ELEMS(sample_fmt_entries); i++) {
-        struct sample_fmt_entry* entry = &sample_fmt_entries[i];
-        if (sample_fmt == entry->sample_fmt) {
-            *fmt = AV_NE(entry->fmt_be, entry->fmt_le);
-            return 0;
-        }
-    }
-
-    fprintf(stderr,
-        "sample format %s is not supported as output format\n",
-        av_get_sample_fmt_name(sample_fmt));
-    return -1;
-}
-
-
-void decode(AVCodecContext* dec_ctx, AVPacket* pkt, AVFrame* frame)
+void decode_mp3(AVCodecContext* dec_ctx, AVPacket* pkt, AVFrame* frame, FILE* out)
 {
     int i, ch;
     int ret, data_size;
@@ -355,6 +201,127 @@ void decode(AVCodecContext* dec_ctx, AVPacket* pkt, AVFrame* frame)
 
         }
     }
+}
+
+void playmusic(int rate, SDL_AudioFormat sdl_fmt, AVChannelLayout ch_layout)
+{
+    FILE* tmpfd = fopen(".tmp.pcm", "rb");
+    int ret;
+    SDL_AudioSpec spec;
+    spec.freq = rate;
+    spec.format = sdl_fmt;
+    spec.channels = ch_layout.nb_channels;
+    spec.silence = 0;
+    spec.samples = 1024;
+    spec.callback = fill_audio_pcm;
+    spec.userdata = NULL;
+
+    fseek(tmpfd, 0, SEEK_END);
+    size_t file_size = ftell(tmpfd);
+    fseek(tmpfd, 0, SEEK_SET);
+    size_t read_buffer_len, data_count = 0;
+
+    ret = SDL_Init(SDL_INIT_AUDIO);
+    if (ret)
+    {
+        fprintf(stderr, "can't init SDL \n");
+        exit(1);
+    }
+
+    ret = SDL_OpenAudio(&spec, 0);
+    if (ret < 0)
+    {
+        fprintf(stderr, "can't open SDL \n");
+        exit(1);
+    }
+    s_audio_buf = calloc(1, PCM_BUFFER_SIZE);
+    SDL_PauseAudio(0);
+
+    while (1)
+    {
+        read_buffer_len = fread(s_audio_buf, 1, PCM_BUFFER_SIZE, tmpfd);
+        if (0 == read_buffer_len)
+        {
+            break;
+        }
+        data_count += read_buffer_len;
+
+        printf("read %ld of %ld - %.2f %% \n", data_count, file_size, ((float)data_count / file_size) * 100);
+        //将当前光标往上移动一行
+        printf("\033[A");
+        //删除光标后面的内容
+        printf("\033[K");
+
+        s_audio_end = s_audio_buf + read_buffer_len;
+        s_audio_pos = s_audio_buf;
+
+        while (s_audio_pos < s_audio_end)
+        {
+            SDL_Delay(10);
+        }
+
+    }
+
+    fclose(tmpfd);
+
+    SDL_CloseAudio();
+    SDL_Quit();
+}
+
+int main(int argc, char** argv)
+{
+    // if (argc < 2)
+    // {
+    //     help(argv[0]);
+    // }
+
+// begin:
+    // char* filename = argv[getIndex(argc - 1)];
+    // char* filename = "/home/afterloe/音乐/莫文蔚-如果没有你.flac";
+    char* filename = "/home/afterloe/音乐/019.陈慧娴-人生何处不相逢【玄音高端无损】.mp3";
+
+    AVFormatContext* ctx = NULL;
+    get_media_info(&ctx, filename);
+    AVCodecContext* codecCtx = NULL;
+    to_pcm(ctx, filename, &codecCtx);
+
+    // void playmusic(int rate, SDL_AudioFormat sdl_fmt, AVChannelLayout ch_layout)
+    AVChannelLayout dst_ch_layout = AV_CHANNEL_LAYOUT_STEREO;
+    playmusic(codecCtx->sample_rate, get_format(codecCtx->sample_fmt), dst_ch_layout);
+    return EXIT_SUCCESS;
+}
+
+SDL_AudioFormat get_format(enum AVSampleFormat sample_fmt)
+{
+    for (int i = 0; i < FF_ARRAY_ELEMS(sample_fmt_entries); i++) {
+        struct sample_fmt_entry* entry = &sample_fmt_entries[i];
+        if (sample_fmt == entry->sample_fmt) {
+            return entry->code;
+        }
+    }
+
+    fprintf(stderr,
+        "sample format %s is not supported as output format\n",
+        av_get_sample_fmt_name(sample_fmt));
+    return -1;
+}
+
+int get_format_from_sample_fmt(const char** fmt, enum AVSampleFormat sample_fmt)
+{
+    int i; *fmt = NULL;
+
+    for (i = 0; i < FF_ARRAY_ELEMS(sample_fmt_entries); i++) {
+        struct sample_fmt_entry* entry = &sample_fmt_entries[i];
+        if (sample_fmt == entry->sample_fmt) {
+            *fmt = AV_NE(entry->fmt_be, entry->fmt_le);
+            return 0;
+        }
+    }
+
+    fprintf(stderr,
+        "sample format %s is not supported as output format\n",
+        av_get_sample_fmt_name(sample_fmt));
+    return -1;
 }
 
 //音频设备回调函数
