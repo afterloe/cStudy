@@ -7,6 +7,7 @@
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
+
 #include <SDL2/SDL_version.h>
 #include <SDL2/SDL_types.h>
 #include <SDL2/SDL.h>

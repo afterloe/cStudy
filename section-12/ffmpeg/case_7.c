@@ -35,15 +35,16 @@ void fill_audio_pcm(void* udata, Uint8* stream, int len)
 
 int main(int argc, char** argv)
 {
-    char* filename = argv[1];
+    // char* filename = argv[1];
+    char* filename = "out.pcm";
 
     int ret = -1;
     // int out_nb_samples = 1024;
     // int out_sample_rate = 44100;
 
     SDL_AudioSpec spec;
-    spec.freq = 48000;     // 指定了每秒向音频设备发送的sample数。常用的值为：11025，22050，44100。值越高质量越好。
-    spec.format = AUDIO_F32LSB; // 每个sample的大小
+    spec.freq = 44100;     // 指定了每秒向音频设备发送的sample数。常用的值为：11025，22050，44100。值越高质量越好。
+    spec.format = AUDIO_S16LSB; // 每个sample的大小
     spec.channels = 2; // 1 单通道 - 2双通道
     spec.silence = 0;
     spec.samples = 1024; // 这个值表示音频缓存区的大小（以sample计）。一个sample是一段大小为 format * channels 的音频数据。
