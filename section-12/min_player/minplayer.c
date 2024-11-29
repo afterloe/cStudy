@@ -14,7 +14,7 @@
 #include "include/minplayer.h"
 
 // 每次读取2帧数据, 以1024个采样点一帧 2通道 16bit采样点为例
-#define PCM_BUFFER_SIZE (2 * 1024 * 2 * 2)
+#define PCM_BUFFER_SIZE 2 * 4608 * 2 * 2
 
 #define AUDIO_INBUF_SIZE 20480
 #define AUDIO_REFILL_THRESH 4096
@@ -52,14 +52,14 @@ int getIndex(int max)
 
 int main(int argc, char** argv)
 {
-    if (argc < 2)
-    {
-        help(argv[0]);
-    }
+    // if (argc < 2)
+    // {
+    //     help(argv[0]);
+    // }
 
-begin:
-    char* filename = argv[getIndex(argc - 1)];
-    // char* filename = "/home/afterloe/音乐/莫文蔚-如果没有你.flac";
+// begin:
+    // char* filename = argv[getIndex(argc - 1)];
+    char* filename = "/home/afterloe/音乐/莫文蔚-如果没有你.flac";
     // char* filename = "/home/afterloe/音乐/019.陈慧娴-人生何处不相逢【玄音高端无损】.mp3";
     out = fopen("c.pcm", "wb+");
 
@@ -179,16 +179,9 @@ begin:
     s_audio_buf = calloc(1, PCM_BUFFER_SIZE);
     SDL_PauseAudio(0);
 
-    ret = av_parser_parse2(parserCtx, codecCtx, &pkt->data, &pkt->size, data, len, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
-    if (ret < 0)
-    {
-        fprintf(stdout, "can't parse %s \n", filename);
-        perror("parser: ");
-        goto ERROR_CODEC_CTX;
-    }
-
     do
     {
+        ret = av_parser_parse2(parserCtx, codecCtx, &pkt->data, &pkt->size, data, len, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
         if (ret < 0)
         {
             perror("Error while parsing \n");
@@ -213,7 +206,6 @@ begin:
                 len += size;
             }
         }
-        ret = av_parser_parse2(parserCtx, codecCtx, &pkt->data, &pkt->size, data, len, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
     } while (len > 0);
 
     pkt->data = NULL;
@@ -279,7 +271,7 @@ end:
     av_frame_free(&decoded_frame);
     av_packet_free(&pkt);
 
-    goto begin;
+    // goto begin;
 
     return EXIT_SUCCESS;
 }
@@ -357,7 +349,7 @@ void decode(AVCodecContext* dec_ctx, AVPacket* pkt, AVFrame* frame)
         else {
             for (i = 0; i < frame->nb_samples; i++)
             {
-                fwrite(frame->data[0]+ data_size * i, 1, data_size, out);
+                fwrite(frame->data[0] + data_size * i, 1, data_size, out);
             }
 
         }

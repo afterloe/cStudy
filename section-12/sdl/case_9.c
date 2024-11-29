@@ -68,10 +68,18 @@ static void decode(AVCodecContext* dec_ctx, AVPacket* pkt, AVFrame* frame,
             exit(1);
         }
         fprintf(stdout, "write %ld bytes \n", data_size);
-        for (i = 0; i < frame->nb_samples; i++)
-        {
-            for (ch = 0; ch < dec_ctx->ch_layout.nb_channels; ch++) {
-                fwrite(frame->data[ch] + data_size * i, 1, data_size, outfile);
+        if (av_sample_fmt_is_planar(dec_ctx->sample_fmt)) {
+            for (i = 0; i < frame->nb_samples; i++)
+            {
+                for (ch = 0; ch < dec_ctx->ch_layout.nb_channels; ch++) {
+                    fwrite(frame->data[ch] + data_size * i, 1, data_size, outfile);
+                }
+            }
+        }
+        else {
+            for (i = 0; i < frame->nb_samples; i++)
+            {
+                fwrite(frame->data[0] + data_size * i, 1, data_size, outfile);
             }
         }
 

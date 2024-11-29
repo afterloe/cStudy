@@ -15,7 +15,7 @@ CFLAGS := $(shell pkg-config --cflags $(SDL_2)) $(CFLAGS)
 LDLIBS := $(shell pkg-config --libs $(FFMPEG_LIBS)) $(LDLIBS)
 LDLIBS := $(shell pkg-config --libs $(SDL_2)) $(LDLIBS)
 
-SRC = case_7
+SRC = case_8
 
 .PHONY: all build clean
 
