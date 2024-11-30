@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <libswresample/swresample.h>
 #include <libavcodec/avcodec.h>
@@ -118,11 +119,11 @@ void to_pcm(AVFormatContext *ctx, char *filename, AVCodecContext **codecCtxPtr)
     AVCodec *codec = avcodec_find_decoder(stream->codecpar->codec_id);
     AVCodecParserContext *parserCtx = av_parser_init(codec->id);
     AVCodecContext *codecCtx = avcodec_alloc_context3(codec);
-    *codecCtxPtr = codecCtx;
     avcodec_open2(codecCtx, codec, NULL);
 
     // 将信息复制到codecCtx内
     avcodec_parameters_to_context(codecCtx, stream->codecpar);
+    *codecCtxPtr = codecCtx;
     FILE *src = fopen(filename, "rb");
     char filetype = 'd';
 
@@ -201,7 +202,6 @@ void to_pcm(AVFormatContext *ctx, char *filename, AVCodecContext **codecCtxPtr)
         }
     }
 
-    /* flush the decoder */
     pkt->data = NULL;
     pkt->size = 0;
     switch (filetype)
@@ -216,11 +216,12 @@ void to_pcm(AVFormatContext *ctx, char *filename, AVCodecContext **codecCtxPtr)
         break;
     }
 
-    // 回收资源
     fclose(src);
     fclose(tmpfd);
-    // swr_free(&swr_ctx);
-    avcodec_free_context(&codecCtx);
+    if (swr_ctx != NULL)
+    {
+        swr_free(&swr_ctx);
+    }
     av_parser_close(parserCtx);
     av_frame_free(&src_frame);
     av_free(codecCtx);
@@ -427,6 +428,7 @@ void playmusic(int rate, SDL_AudioFormat sdl_fmt, AVChannelLayout ch_layout)
     }
 
     fclose(tmpfd);
+    unlink(tmpfd);
 
     SDL_CloseAudio();
     SDL_Quit();
@@ -462,6 +464,9 @@ int main(int argc, char **argv)
     AVChannelLayout dst_ch_layout = AV_CHANNEL_LAYOUT_STEREO;
 
     playmusic(codecCtx->sample_rate, sdl_fmt, dst_ch_layout);
+
+    av_free(ctx);
+    avcodec_free_context(&codecCtx);
     return EXIT_SUCCESS;
 }
 
@@ -524,8 +529,8 @@ void fill_audio_pcm(void *udata, Uint8 *stream, int len)
 
 void help(const char *appname)
 {
-    printf("usage %s <file> \n", appname);
-    printf("supper file *.mp3 \n");
+    fprintf(stdout, "usage %s <file> \n", appname);
+    fprintf(stdout, "supper file *.mp3, *.flac \n");
     exit(EXIT_SUCCESS);
 }
 
