@@ -158,7 +158,9 @@ umask()函数， 防止继承的文件创建屏蔽字拒绝某些权限，增加
 ```shell
 sudo apt-get install manpages-posix-dev
 
-man -k pthread
+man -k pthread # 显示所有api
+# man -k strcpy
+# man strcpy
 ```
 manpages-posix-dev 包含 POSIX 的 header files 和 library calls 的用法.
 
