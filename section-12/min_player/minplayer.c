@@ -50,7 +50,7 @@ extern void playmusic(int rate, SDL_AudioFormat sdl_fmt, AVChannelLayout ch_layo
 extern void initSwrCtx(SwrContext**, AVCodecContext*);
 
 
-#define FILE_NAME_SIZE 256
+#define FILE_NAME_SIZE 512
 
 typedef void CALLBACK(char*);
 
@@ -522,8 +522,9 @@ void doPlay(char* filename)
 
     playmusic(codecCtx->sample_rate, sdl_fmt, dst_ch_layout);
 
-    avcodec_free_context(&codecCtx);
     av_free(ctx);
+
+    fprintf(stdout, "\e[1;1H\e[2J"); // 清屏
 }
 
 void doPrint(char* filename)
@@ -547,12 +548,13 @@ int main(int argc, char** argv)
     arr = calloc(1, sizeof(LinkeArray));
     loadMusic(arr, filename);
     fprintf(stdout, "find %ld \n", arr->size);
+    fprintf(stdout, "\033[?2hl"); // 隐藏光标
 
 PLAY:
     int random_idx = getRandomIndex(arr->size);
     find_by_idx(arr, random_idx, doPlay);
     goto PLAY;
-    
+
     free(arr);
 
     return EXIT_SUCCESS;
