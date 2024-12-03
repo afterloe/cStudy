@@ -34,7 +34,7 @@ C/CPP 练习与复习
 * [section-06](section-06/summary.md)
     * 文件读写操作, 文件指针的移动
     * 文件状态、文件重命名及文件删除
-* [section-07](section-07/summary.md)
+* [section-07 数据结构](section-07/summary.md)
     * 数据结构
     * [线性表](section-07/linear-list/summary.md)/ [链表的插入、删除和查询](section-07/linear-list/case_2.c)/ 链表的反转
     * 动态数组
@@ -42,7 +42,7 @@ C/CPP 练习与复习
     * 栈 / 队列
     * 树 / 二叉树
     * 图
-* [section-08](section-08/summary.md)
+* [section-08 查询与算法](section-08/summary.md)
     * 查询 / 二叉树查询 
     * [冒泡排序](section-05/case_2.c)
     * [选择排序](section-07/linear-list/case_3.c)
@@ -63,8 +63,13 @@ C/CPP 练习与复习
     * MAC / IP / Socket / TCP / UDP / [Socket API](section-11/socket_api.md)
     * 多路IO / SELECT / POLL / EPOLL  / 反应堆线程池 
     * [libevent](section-11/case_12_libevent)
-* [section-12 Cpp](section-12/summary.md)
-    * 基础语法
+* [section-12 C&Cpp 混合应用](section-12/summary.md)
+    * c++基础语法 / 与c混合编译 / 静-动态库的调用
+    * [ffmpeg 获取音频信息](section-12/ffmpeg/case_5.c) / [mp3 解码](section-12/ffmpeg/case_8.c) / [flac 解码](section-12/ffmpeg/case_9.c)
+    * [SDL2 播放解码后的音频](section-12/ffmpeg/case_7.c)
+    * [ffmpeg + SDL2 直接播放 flac](section-12/ffmpeg/case_10.c)
+    * [迷你音乐播放器](section-12/min_player/minplayer.c)
+    * [ASNSI屏幕控制](section-12/min_player/ANSI屏幕控制码.md)
 
 
 * 备忘录
@@ -74,6 +79,7 @@ C/CPP 练习与复习
     * [libevent 网络工具库](other/libevent_usage.md)
     * [socket模拟工具、内存泄漏检测工具](other/tools.md)
     * [openssl工具的使用](other/openssl.md)
+    * [sdl2 ffmpeg的编译](other/ffmpeg_install.md)
 
 
 ## C/C++ 小工程/项目
@@ -82,6 +88,7 @@ C/CPP 练习与复习
 * [练习：命令行下的贪吃蛇](practice/example-03/summary.md)
 * [练习：读取配置文件，配置文件加解密](practice/example-04/summary.md)
 * [练习：文件的加解密](practice/example-05/summary.md)
+* [练习: 读取文件夹下所有的文件](practice/example-06/summary.md)
 * WebServer / HttpClient
 * WebRTC / FFmpeg
 
